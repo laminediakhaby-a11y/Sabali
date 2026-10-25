@@ -99,6 +99,16 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600}
     <div id="dash" hidden>
       <div class="whoami"><strong id="who"></strong><button class="alt" id="logout" style="font:inherit;font-size:.9rem;padding:7px 11px;border-radius:9px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink)">Déconnexion</button></div>
       <div class="stat"><div><b id="nb">0</b><span>colis enregistrés</span></div><div><b id="ca">0 €</b><span>total des envois</span></div></div>
+      <details>
+        <summary>Mes informations pour les messages WhatsApp</summary>
+        <p class="small">Ajoutées automatiquement dans le message « votre colis est arrivé ».</p>
+        <label for="adr">Adresse de retrait des colis</label>
+        <input id="adr" placeholder="Ex : 12 rue de la Paix, Bamako">
+        <label for="ctc">Numéro à appeler pour le retrait</label>
+        <input id="ctc" type="tel" placeholder="+223 70 12 34 56">
+        <button class="go alt" id="savemsg">Enregistrer</button>
+        <div id="merr" role="status"></div>
+      </details>
       <h2>Mes voyages</h2>
       <div class="two">
         <div><label for="vnom">Nom du voyage</label><input id="vnom" placeholder="Ex : Conteneur novembre"></div>
@@ -112,6 +122,8 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600}
         <div><label for="from">Expéditeur</label><input id="from"></div>
         <div><label for="to">Destinataire</label><input id="to"></div>
       </div>
+      <label for="tel">Téléphone du destinataire (WhatsApp, facultatif)</label>
+      <input id="tel" type="tel" placeholder="+223 70 12 34 56 (avec l’indicatif du pays)" autocomplete="off">
       <div class="two">
         <div><label for="orig">Départ</label><input id="orig" value="Paris"></div>
         <div><label for="city">Ville d’arrivée</label><input id="city" placeholder="Bamako, Dakar…"></div>
@@ -236,7 +248,13 @@ $('logout').onclick = function () { if (db) db.auth.signOut(); };
 
 function show() {
   $('auth').hidden = !!user; $('dash').hidden = !user;
-  if (user) { $('who').textContent = (user.user_metadata && user.user_metadata.nom) || user.email; load(); }
+  if (user) {
+    $('who').textContent = (user.user_metadata && user.user_metadata.nom) || user.email;
+    var m0 = user.user_metadata || {};
+    if (document.activeElement !== $('adr')) $('adr').value = m0.adresse || '';
+    if (document.activeElement !== $('ctc')) $('ctc').value = m0.contact || '';
+    load();
+  }
 }
 if (db) db.auth.onAuthStateChange(function (_e, s) { user = s ? s.user : null; setTimeout(show, 0); });
 
@@ -286,6 +304,7 @@ function drawVoyages() {
       r.appendChild(t);
       if (c.etape === 6) { r.appendChild(el('span', 'badge', 'Remis')); card.appendChild(r); return; }
       var a = el('div', 'acts');
+      var w = el('a', '', 'WhatsApp'); w.target = '_blank'; w.rel = 'noopener'; w.href = waUrl(c); a.appendChild(w);
       if (v.etape === 5) {
         var rb = el('button', 'next', 'Remis');
         rb.onclick = async function () { rb.disabled = true; await vcall('marquer_remis', { p_colis: c.id }); load(); };
@@ -336,6 +355,12 @@ function drawVoyages() {
     L.appendChild(card);
   });
 }
+$('savemsg').onclick = async function () {
+  var e = $('merr'); e.textContent = '';
+  var o = await db.auth.updateUser({ data: { adresse: $('adr').value.trim(), contact: $('ctc').value.trim() } });
+  e.appendChild(o.error ? msg('Enregistrement impossible : ' + o.error.message)
+                        : msg('Enregistré. Les messages WhatsApp utiliseront ces informations.', 'info'));
+};
 $('vadd').onclick = async function () {
   var n = $('vnom').value.trim(), e = $('verr'); e.textContent = '';
   if (!n) { e.appendChild(msg('Donnez un nom au voyage.')); return; }
@@ -344,6 +369,48 @@ $('vadd').onclick = async function () {
   $('vnom').value = ''; load();
 };
 $('vdate').value = new Date().toISOString().slice(0, 10);
+function cleanTel(t) {
+  var d = t.replace(/[^\d+]/g, '');
+  if (d.charAt(0) === '+') d = d.slice(1); else if (d.slice(0, 2) === '00') d = d.slice(2); else return '';
+  d = d.replace(/\D/g, '');
+  return d.length >= 8 && d.length <= 15 ? d : '';
+}
+var VMSG = [
+  'votre colis a bien été pris en charge.',
+  'votre colis a été chargé dans le conteneur.',
+  'le bateau est parti avec votre colis.',
+  null, null, null,
+  'votre colis vous a bien été remis. Merci de votre confiance !'
+];
+function waText(c) {
+  var m = (user && user.user_metadata) || {}, st = stepsFor(c), nom = m.nom || 'Sabali';
+  var isV = !!(c.voyage_id || c.voyage);
+  var arrive = isV ? c.etape === 5 : c.etape === st.length - 2;
+  var livre = isV ? c.etape === 6 : c.etape === st.length - 1;
+  var body;
+  if (arrive) {
+    body = 'bonne nouvelle, votre colis est arrivé ! Vous pouvez venir le récupérer' +
+      (m.adresse ? ' à l’adresse suivante : ' + m.adresse : '') + '.' +
+      (m.contact ? ' Pour le récupérer ou fixer un moment, contactez le ' + m.contact + '.' : '');
+  } else if (livre) {
+    body = isV ? VMSG[6] : 'votre colis a bien été livré. Merci de votre confiance !';
+  } else if (isV) {
+    if (c.etape === 3) body = 'votre colis est en mer, ' + (c.port ? 'en route vers ' + c.port : 'en route vers l’Afrique') + '.';
+    else if (c.etape === 4) body = 'votre colis est arrivé au port' + (c.port ? ' de ' + c.port : '') + '. Il passe maintenant la douane.';
+    else body = VMSG[c.etape];
+  } else {
+    var pass = (c.evenements || []).filter(function (e) { return e.type === 'passage'; })
+      .sort(function (a, b) { return new Date(when(a)) - new Date(when(b)); });
+    body = 'votre colis est en statut « ' + st[c.etape] + ' »' +
+      (pass.length ? ' (dernier point : ' + pass[pass.length - 1].lieu + ')' : '') + '.';
+  }
+  return 'Bonjour' + (c.destinataire ? ' ' + c.destinataire : '') + ', ' + body +
+    (livre ? '' : '\nCode de suivi : ' + c.code + '\nSuivi : ' + location.origin + location.pathname + '?code=' + c.code) +
+    '\n— ' + nom;
+}
+function waUrl(c) {
+  return 'https://wa.me/' + (c.telephone || '').replace(/\D/g, '') + '?text=' + encodeURIComponent(waText(c));
+}
 function draw() {
   $('nb').textContent = colis.length;
   $('ca').textContent = colis.reduce(function (s, c) { return s + (Number(c.prix) || 0); }, 0) + ' €';
@@ -352,7 +419,7 @@ function draw() {
   colis.forEach(function (c) {
     var card = el('div', 'track');
     card.appendChild(head(c, c.expediteur + ' → ' + c.destinataire + ' · ' + subline(c)));
-    card.appendChild(el('div', 'small', (c.kg ? c.kg + ' kg · ' : '') + (c.prix ? c.prix + ' €' : '')));
+    card.appendChild(el('div', 'small', (c.telephone ? '📱 ' + c.telephone + ' · ' : '') + (c.kg ? c.kg + ' kg · ' : '') + (c.prix ? c.prix + ' €' : '')));
     var acts = el('div', 'acts'), st = stepsFor(c);
     if (c.voyage_id) {
       var vv = voyages.filter(function (x) { return x.id === c.voyage_id; })[0];
@@ -364,13 +431,7 @@ function draw() {
       acts.appendChild(nx);
     }
     var wa = el('a', '', 'Envoyer par WhatsApp'); wa.target = '_blank'; wa.rel = 'noopener';
-    var pass = (c.evenements || []).filter(function (e) { return e.type === 'passage'; })
-      .sort(function (a, b) { return new Date(when(a)) - new Date(when(b)); });
-    var nom = (user.user_metadata && user.user_metadata.nom) || 'Sabali';
-    var txt = nom + ' : votre colis est en statut « ' + st[c.etape] + ' »' +
-      (pass.length ? ' (dernier point : ' + pass[pass.length - 1].lieu + ')' : '') +
-      '. Code de suivi : ' + c.code + '. Suivi sur : ' + location.origin + location.pathname + '?code=' + c.code;
-    wa.href = 'https://wa.me/?text=' + encodeURIComponent(txt); acts.appendChild(wa);
+    wa.href = waUrl(c); acts.appendChild(wa);
     var del = el('button', '', 'Supprimer');
     del.onclick = async function () {
       if (!confirm('Supprimer le colis ' + c.code + ' ?')) return;
@@ -391,13 +452,20 @@ $('add').onclick = async function () {
   var e = $('err'); e.textContent = '';
   var f = $('from').value.trim(), t = $('to').value.trim();
   if (!f || !t) { e.appendChild(msg('Indiquez au moins l’expéditeur et le destinataire.')); return; }
-  var o = await db.from('colis').insert({
+  var telok = '';
+  if ($('tel').value.trim()) {
+    telok = cleanTel($('tel').value.trim());
+    if (!telok) { e.appendChild(msg('Numéro invalide. Écrivez-le avec l’indicatif du pays, par exemple +223 70 12 34 56.')); return; }
+  }
+  var row = {
     expediteur: f, destinataire: t, origine: $('orig').value.trim(), port: $('port').value.trim(),
     ville: $('city').value.trim(), contenu: $('what').value.trim(), kg: parseFloat($('kg').value) || 0,
     prix: parseFloat($('price').value) || 0, route: $('road').value === '1'
-  });
+  };
+  if (telok) row.telephone = '+' + telok;
+  var o = await db.from('colis').insert(row);
   if (o.error) { e.appendChild(msg('Enregistrement impossible : ' + o.error.message)); return; }
-  ['from', 'to', 'what', 'kg', 'price'].forEach(function (i) { $(i).value = ''; });
+  ['from', 'to', 'tel', 'what', 'kg', 'price'].forEach(function (i) { $(i).value = ''; });
   load();
 };
 
