@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sabali – Administration</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--encre:#12263A;--mer:#1D5C7A;--fond:#F4F7F9;--ligne:#D5DEE5;--ok:#2F7D4F;--stop:#B3402F}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 system-ui,sans-serif;color:var(--encre);background:var(--fond);padding:16px;max-width:720px;margin-inline:auto}
+h1{font-size:1.5rem;margin:8px 0 16px}
+input{font:inherit;padding:10px;border:1px solid var(--ligne);border-radius:6px;width:100%;background:#fff;color:var(--encre)}
+button{font:inherit;padding:10px 14px;border:0;border-radius:6px;background:var(--mer);color:#fff;cursor:pointer}
+button.ghost{background:#fff;color:var(--encre);border:1px solid var(--ligne)}
+button:focus-visible,input:focus-visible{outline:3px solid #7FB3CC;outline-offset:2px}
+#login{display:grid;gap:10px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.stat{background:#fff;border:1px solid var(--ligne);border-radius:6px;padding:10px 12px}
+.stat b{display:block;font-size:1.5rem}
+.carte{background:#fff;border:1px solid var(--ligne);border-radius:6px;padding:14px;margin-bottom:12px}
+.carte.suspendu{border-left:5px solid var(--stop)}
+.carte.actif{border-left:5px solid var(--ok)}
+.carte h2{font-size:1rem;margin:0 0 4px;word-break:break-all}
+.meta{color:#4B6070;font-size:.9rem;margin-bottom:10px}
+.champs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.champs label{font-size:.85rem;color:#4B6070}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+#msg{color:var(--stop);min-height:1.5em}
+</style>
+</head>
+<body>
+<h1>Sabali – Administration</h1>
+
+<div id="login">
+  <input id="email" type="email" placeholder="Ton email" autocomplete="username">
+  <input id="mdp" type="password" placeholder="Ton mot de passe" autocomplete="current-password">
+  <button onclick="connexion()">Se connecter</button>
+</div>
+<p id="msg"></p>
+
+<div id="app" hidden>
+  <div class="stats" id="stats"></div>
+  <div id="liste"></div>
+  <button class="ghost" onclick="sortir()">Se déconnecter</button>
+</div>
+
+<script>
+// Colle ici les deux mêmes valeurs que dans ton index.html
+const SUPABASE_URL = "COLLE_ICI_TON_URL";
+const SUPABASE_KEY = "COLLE_ICI_TA_CLE";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function connexion() {
+  $("msg").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("mdp").value });
+  if (error) { $("msg").textContent = "Connexion impossible : " + error.message; return; }
+  demarrer();
+}
+
+async function demarrer() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+  const { data } = await sb.from("admins").select("user_id").eq("user_id", user.id);
+  if (!data || !data.length) {
+    $("msg").textContent = "Ce compte n’a pas l’accès administrateur.";
+    await sb.auth.signOut();
+    return;
+  }
+  $("login").hidden = true;
+  $("app").hidden = false;
+  charger();
+}
+
+async function sortir() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+async function charger() {
+  const [ab, vo, co] = await Promise.all([
+    sb.from("abonnements").select("*").order("email"),
+    sb.from("voyages").select("id,transporteur_id"),
+    sb.from("colis").select("voyage_id")
+  ]);
+  if (ab.error) { $("msg").textContent = "Erreur : " + ab.error.message; return; }
+
+  const proprio = {}, nbVoyages = {}, nbColis = {};
+  (vo.data || []).forEach(v => {
+    proprio[v.id] = v.transporteur_id;
+    nbVoyages[v.transporteur_id] = (nbVoyages[v.transporteur_id] || 0) + 1;
+  });
+  const colisOk = !co.error;
+  (co.data || []).forEach(c => {
+    const t = proprio[c.voyage_id];
+    if (t) nbColis[t] = (nbColis[t] || 0) + 1;
+  });
+
+  const liste = ab.data;
+  const actifs = liste.filter(a => a.statut === "actif");
+  const loyers = actifs.reduce((s, a) => s + Number(a.loyer || 0), 0);
+  $("stats").innerHTML =
+    `<div class="stat"><b>${actifs.length}/${liste.length}</b>transporteurs actifs</div>` +
+    `<div class="stat"><b>${loyers} €</b>loyers par mois</div>` +
+    `<div class="stat"><b>${(vo.data || []).length}</b>voyages</div>` +
+    `<div class="stat"><b>${colisOk ? (co.data || []).length : "–"}</b>colis</div>`;
+
+  $("liste").innerHTML = liste.length ? liste.map(a => `
+    <div class="carte ${esc(a.statut)}">
+      <h2>${esc(a.email)}</h2>
+      <div class="meta">${a.statut === "actif" ? "Actif" : "Suspendu"} · ${nbVoyages[a.transporteur_id] || 0} voyages · ${colisOk ? (nbColis[a.transporteur_id] || 0) : "–"} colis</div>
+      <div class="champs">
+        <div><label for="l-${a.transporteur_id}">Loyer (€ / mois)</label>
+          <input id="l-${a.transporteur_id}" type="number" min="0" step="1" value="${esc(a.loyer)}"></div>
+        <div><label for="d-${a.transporteur_id}">Prochaine échéance</label>
+          <input id="d-${a.transporteur_id}" type="date" value="${esc(a.date_echeance)}"></div>
+      </div>
+      <div class="actions">
+        <button onclick="enregistrer('${a.transporteur_id}')">Enregistrer</button>
+        <button class="ghost" onclick="basculer('${a.transporteur_id}','${a.statut}')">${a.statut === "actif" ? "Suspendre" : "Réactiver"}</button>
+      </div>
+    </div>`).join("") : "<p>Aucun transporteur pour l’instant.</p>";
+}
+
+async function enregistrer(id) {
+  const { error } = await sb.from("abonnements").update({
+    loyer: Number($("l-" + id).value || 0),
+    date_echeance: $("d-" + id).value || null
+  }).eq("transporteur_id", id);
+  $("msg").textContent = error ? "Erreur : " + error.message : "";
+  charger();
+}
+
+async function basculer(id, statut) {
+  const { error } = await sb.from("abonnements")
+    .update({ statut: statut === "actif" ? "suspendu" : "actif" })
+    .eq("transporteur_id", id);
+  $("msg").textContent = error ? "Erreur : " + error.message : "";
+  charger();
+}
+
+demarrer();
+</script>
+</body>
+</html>
