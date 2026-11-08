@@ -149,7 +149,7 @@ function draw(rows) {
     var card = el('div', 'track'), top = el('div', 'top'), l = el('div');
     l.appendChild(el('div', 'code', t.email));
     l.appendChild(el('div', 'small', t.nb_colis + ' colis · loyer ' + eur(t.loyer) + ' par mois'));
-    l.appendChild(el('div', 'small', 'Valable jusqu’au ' + fr(t.date_echeance)));
+    l.appendChild(el('div', 'small', t.date_echeance ? 'Valable jusqu’au ' + fr(t.date_echeance) : 'Sans date de fin'));
     top.appendChild(l);
     top.appendChild(el('span', 'badge' + (t.etat === 'essai' ? ' essai' : (t.etat === 'actif' ? '' : ' bad')), t.etat));
     card.appendChild(top);
