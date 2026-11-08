@@ -2,194 +2,217 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sabali – Administration</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3d2e">
+<meta name="robots" content="noindex">
+<title>Sabali – administration</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
-:root{--encre:#12263A;--mer:#1D5C7A;--fond:#F4F7F9;--ligne:#D5DEE5;--ok:#2F7D4F;--stop:#B3402F}
+:root{--bg:#f3f6f2;--card:#fff;--ink:#12261d;--mute:#5a6d63;--brand:#0f3d2e;--gold:#e3a82b;--line:#d9e3dc;--ok:#1a7f4b;--bad:#b3261e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1812;--card:#14261d;--ink:#e8f3ec;--mute:#9bb3a6;--brand:#0a2a20;--line:#25402f;--ok:#5fd394;--bad:#ff8a80;color-scheme:dark}}
 *{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Outfit',system-ui,sans-serif;line-height:1.45}
+.hero{background:var(--brand);color:#fff;padding:24px 18px 60px;border-bottom:4px solid var(--gold)}
+.hero div{max-width:640px;margin:0 auto}
+.brand{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1}.brand span{color:var(--gold)}
+.tag{margin:8px 0 0;opacity:.9}
+main{max-width:640px;margin:-40px auto 0;padding:0 16px 48px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(15,61,46,.12)}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+label{display:block;font-weight:600;margin:10px 0 4px;font-size:.95rem}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:10px;padding:11px 12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.go{display:block;width:100%;margin-top:14px;font:inherit;font-weight:800;background:var(--gold);color:#2b1d00;border:0;border-radius:12px;padding:14px;cursor:pointer}
+.alt{background:transparent;color:var(--ink);border:2px solid var(--line);font-weight:600}
+h2{font-size:1.05rem;margin:22px 0 10px}
+.track{margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:14px}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.code{font-weight:800;font-size:1.05rem;overflow-wrap:anywhere}
+.small{color:var(--mute);font-size:.92rem}
+.badge{font-weight:600;font-size:.8rem;padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--ok) 16%,var(--card));color:var(--ok);white-space:nowrap}
+.badge.essai{background:color-mix(in srgb,var(--gold) 22%,var(--card));color:var(--ink)}
+.badge.bad{background:color-mix(in srgb,var(--bad) 15%,var(--card));color:var(--bad)}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0 0}
+.stat div{background:var(--bg);border-radius:14px;padding:12px;text-align:center}
+.stat b{display:block;font-size:1.4rem}.stat span{color:var(--mute);font-size:.85rem}
+.acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.acts button{font:inherit;font-size:.9rem;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer}
+.acts .next{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:600}
+.msg{margin-top:12px;padding:12px;border-radius:10px;font-weight:600;background:color-mix(in srgb,var(--bad) 15%,var(--card));color:var(--bad)}
+.info{background:color-mix(in srgb,var(--ok) 15%,var(--card));color:var(--ok)}
+.whoami{display:flex;justify-content:space-between;align-items:center;gap:8px}
+details{margin-top:12px}summary{cursor:pointer;font-weight:600}
 [hidden]{display:none!important}
-body{margin:0;font:16px/1.5 system-ui,sans-serif;color:var(--encre);background:var(--fond);padding:16px;max-width:720px;margin-inline:auto}
-h1{font-size:1.5rem;margin:8px 0 16px}
-input{font:inherit;padding:10px;border:1px solid var(--ligne);border-radius:6px;width:100%;background:#fff;color:var(--encre)}
-button{font:inherit;padding:10px 14px;border:0;border-radius:6px;background:var(--mer);color:#fff;cursor:pointer}
-button.ghost{background:#fff;color:var(--encre);border:1px solid var(--ligne)}
-button:focus-visible,input:focus-visible{outline:3px solid #7FB3CC;outline-offset:2px}
-#login,#reset{display:grid;gap:10px}
-#reset h2{font-size:1.1rem;margin:0}
-.lien{color:var(--mer);font-size:.9rem;text-align:center;padding:4px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
-.stat{background:#fff;border:1px solid var(--ligne);border-radius:6px;padding:10px 12px}
-.stat b{display:block;font-size:1.5rem}
-.carte{background:#fff;border:1px solid var(--ligne);border-radius:6px;padding:14px;margin-bottom:12px}
-.carte.suspendu{border-left:5px solid var(--stop)}
-.carte.actif{border-left:5px solid var(--ok)}
-.carte h2{font-size:1rem;margin:0 0 4px;word-break:break-all}
-.meta{color:#4B6070;font-size:.9rem;margin-bottom:10px}
-.champs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.champs label{font-size:.85rem;color:#4B6070}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
-#msg{color:var(--stop);min-height:1.5em}
 </style>
 </head>
 <body>
-<h1>Sabali – Administration</h1>
+<header class="hero"><div>
+  <h1 class="brand">Sa<span>bali</span></h1>
+  <p class="tag">Administration des transporteurs</p>
+</div></header>
 
-<div id="login">
-  <input id="email" type="email" placeholder="Ton email" autocomplete="username">
-  <input id="mdp" type="password" placeholder="Ton mot de passe" autocomplete="current-password">
-  <button onclick="connexion()">Se connecter</button>
-  <a href="#" class="lien" onclick="oublie(); return false;">Mot de passe oublié ?</a>
-</div>
+<main><div class="panel">
+  <div id="auth">
+    <label for="email">E-mail</label><input id="email" type="email" autocomplete="email">
+    <label for="pwd">Mot de passe</label><input id="pwd" type="password" autocomplete="current-password">
+    <button class="go" id="login">Me connecter</button>
+    <div id="autherr" role="status"></div>
+  </div>
 
-<div id="reset" hidden>
-  <h2>Nouveau mot de passe</h2>
-  <input id="nmdp" type="password" placeholder="Nouveau mot de passe (8 caractères min.)" autocomplete="new-password">
-  <button onclick="nouveauMdp()">Enregistrer</button>
-</div>
+  <div id="adm" hidden>
+    <div class="whoami"><strong id="who"></strong><button class="acts" id="logout" style="font:inherit;font-size:.9rem;padding:7px 11px;border-radius:9px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink)">Déconnexion</button></div>
+    <div id="deny" hidden></div>
+    <div id="body">
+      <div class="stat">
+        <div><b id="sa">0</b><span>transporteurs actifs</span></div>
+        <div><b id="sr">0</b><span>à relancer</span></div>
+        <div><b id="se">0 €</b><span>encaissé ce mois-ci</span></div>
+      </div>
+      <div id="note" role="status"></div>
 
-<p id="msg"></p>
+      <h2>Ajouter un transporteur</h2>
+      <p class="small">Le transporteur doit d’abord avoir créé son compte sur le site avec cet e-mail.</p>
+      <label for="aemail">E-mail du transporteur</label><input id="aemail" type="email">
+      <div class="two">
+        <div><label for="ajours">Jours d’essai gratuit</label><input id="ajours" type="number" min="0" value="14"></div>
+        <div><label for="aloyer">Loyer par mois (€)</label><input id="aloyer" type="number" min="0" value="0"></div>
+      </div>
+      <button class="go" id="aadd">Ajouter avec essai gratuit</button>
 
-<div id="app" hidden>
-  <div class="stats" id="stats"></div>
-  <div id="liste"></div>
-  <button class="ghost" onclick="sortir()">Se déconnecter</button>
-</div>
+      <h2>Mes transporteurs</h2>
+      <div id="list"></div>
+    </div>
+  </div>
+</div></main>
 
 <script>
-// Colle ici les deux mêmes valeurs que dans ton index.html
-const SUPABASE_URL = "https://onrxixenlkqgxvghgeke.supabase.co";
-const SUPABASE_KEY = "sb_publishable_0EryPTXsbPoKxygFMUGSQg_szulCkW5";
+var SUPABASE_URL = 'https://onrxixenlkqgxvghgeke.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_0EryPTXsbPoKxygFMUGSQg_szulCkW5';
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const $ = id => document.getElementById(id);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+var $ = function (i) { return document.getElementById(i); };
+function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+function fr(d) { return d ? new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'sans date de fin'; }
+function eur(n) { return (Number(n) || 0).toLocaleString('fr-FR') + ' €'; }
+function note(t, ok) { var e = $('note'); e.textContent = ''; if (t) e.appendChild(el('div', 'msg' + (ok ? ' info' : ''), t)); }
 
-// --- Mot de passe oublié ---
-let recuperation = location.hash.includes("type=recovery");
+var db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY), user = null;
 
-function afficherReset() {
-  recuperation = true;
-  $("login").hidden = true;
-  $("app").hidden = true;
-  $("reset").hidden = false;
+$('login').onclick = async function () {
+  var o = await db.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pwd').value });
+  var e = $('autherr'); e.textContent = '';
+  if (o.error) e.appendChild(el('div', 'msg', 'E-mail ou mot de passe incorrect.'));
+};
+$('logout').onclick = function () { db.auth.signOut(); };
+db.auth.onAuthStateChange(function (_e, s) { user = s ? s.user : null; setTimeout(show, 0); });
+
+function show() {
+  $('auth').hidden = !!user; $('adm').hidden = !user;
+  if (user) { $('who').textContent = user.email; load(); }
 }
 
-sb.auth.onAuthStateChange(event => {
-  if (event === "PASSWORD_RECOVERY") afficherReset();
-});
+var RANG = { 'expiré': 0, 'suspendu': 1, 'essai': 2, 'actif': 3 };
 
-async function oublie() {
-  const email = $("email").value.trim();
-  if (!email) { $("msg").textContent = "Saisis d’abord ton email."; return; }
-  const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: "https://sabali.app/admin.html"
-  });
-  $("msg").textContent = error ? "Erreur : " + error.message : "Email envoyé, vérifie ta boîte mail.";
-}
-
-async function nouveauMdp() {
-  const p = $("nmdp").value;
-  if (p.length < 8) { $("msg").textContent = "8 caractères minimum."; return; }
-  const { error } = await sb.auth.updateUser({ password: p });
-  if (error) { $("msg").textContent = "Erreur : " + error.message; return; }
-  history.replaceState(null, "", location.pathname);
-  recuperation = false;
-  $("reset").hidden = true;
-  $("msg").textContent = "";
-  demarrer();
-}
-
-// --- Connexion ---
-async function connexion() {
-  $("msg").textContent = "";
-  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("mdp").value });
-  if (error) { $("msg").textContent = "Connexion impossible : " + error.message; return; }
-  demarrer();
-}
-
-async function demarrer() {
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return;
-  const { data } = await sb.from("admins").select("user_id").eq("user_id", user.id);
-  if (!data || !data.length) {
-    $("msg").textContent = "Ce compte n’a pas l’accès administrateur.";
-    await sb.auth.signOut();
+async function load() {
+  var o = await db.rpc('admin_liste_transporteurs');
+  if (o.error) {
+    $('body').hidden = true; $('deny').hidden = false; $('deny').textContent = '';
+    $('deny').appendChild(el('div', 'msg', 'Cette page est réservée à l’administratrice de Sabali.'));
     return;
   }
-  $("login").hidden = true;
-  $("app").hidden = false;
-  charger();
+  $('body').hidden = false; $('deny').hidden = true;
+  var rows = (o.data || []).slice().sort(function (a, b) { return (RANG[a.etat] || 0) - (RANG[b.etat] || 0); });
+
+  var d = new Date(), debut = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+  var p = await db.from('paiements').select('montant').gte('cree_le', debut);
+  var encaisse = (p.data || []).reduce(function (s, x) { return s + (Number(x.montant) || 0); }, 0);
+
+  $('sa').textContent = rows.filter(function (t) { return t.etat === 'actif' || t.etat === 'essai'; }).length;
+  $('sr').textContent = rows.filter(function (t) { return t.etat === 'expiré'; }).length;
+  $('se').textContent = eur(encaisse);
+  draw(rows);
 }
 
-async function sortir() {
-  await sb.auth.signOut();
-  location.reload();
+async function act(name, args, ok) {
+  note('');
+  var o = await db.rpc(name, args);
+  if (o.error) { note(o.error.message); return false; }
+  await load();
+  if (ok) note(ok, true);
+  return true;
 }
 
-async function charger() {
-  const [ab, vo, co] = await Promise.all([
-    sb.from("abonnements").select("*").order("email"),
-    sb.from("voyages").select("id,transporteur_id"),
-    sb.from("colis").select("voyage_id")
-  ]);
-  if (ab.error) { $("msg").textContent = "Erreur : " + ab.error.message; return; }
+function draw(rows) {
+  var L = $('list'); L.textContent = '';
+  if (!rows.length) { L.appendChild(el('p', 'small', 'Aucun transporteur pour le moment. Ajoutez le premier ci-dessus.')); return; }
+  rows.forEach(function (t) {
+    var card = el('div', 'track'), top = el('div', 'top'), l = el('div');
+    l.appendChild(el('div', 'code', t.email));
+    l.appendChild(el('div', 'small', t.nb_colis + ' colis · loyer ' + eur(t.loyer) + ' par mois'));
+    l.appendChild(el('div', 'small', 'Valable jusqu’au ' + fr(t.date_echeance)));
+    top.appendChild(l);
+    top.appendChild(el('span', 'badge' + (t.etat === 'essai' ? ' essai' : (t.etat === 'actif' ? '' : ' bad')), t.etat));
+    card.appendChild(top);
 
-  const proprio = {}, nbVoyages = {}, nbColis = {};
-  (vo.data || []).forEach(v => {
-    proprio[v.id] = v.transporteur_id;
-    nbVoyages[v.transporteur_id] = (nbVoyages[v.transporteur_id] || 0) + 1;
+    var acts = el('div', 'acts');
+    var pay = el('button', 'next', 'Payé · 1 mois');
+    pay.onclick = function () {
+      pay.disabled = true;
+      act('admin_marquer_paye', { p_transporteur: t.transporteur_id, p_mois: 1 }, 'Paiement enregistré pour ' + t.email + '.');
+    };
+    acts.appendChild(pay);
+    var sus = el('button', '', t.statut === 'suspendu' ? 'Réactiver' : 'Suspendre');
+    sus.onclick = function () {
+      if (t.statut !== 'suspendu' && !confirm('Suspendre ' + t.email + ' ? Il ne pourra plus créer de colis ni de voyages.')) return;
+      act('admin_modifier_abonnement', { p_transporteur: t.transporteur_id, p_statut: t.statut === 'suspendu' ? 'actif' : 'suspendu' },
+        t.statut === 'suspendu' ? 'Transporteur réactivé.' : 'Transporteur suspendu.');
+    };
+    acts.appendChild(sus);
+    card.appendChild(acts);
+
+    var det = document.createElement('details');
+    det.appendChild(el('summary', '', 'Autres réglages'));
+    var two = el('div', 'two'), a = el('div'), b = el('div');
+    var lm = el('label', '', 'Mois payés'); lm.htmlFor = 'm' + t.transporteur_id;
+    var sm = document.createElement('select'); sm.id = lm.htmlFor;
+    [1, 2, 3, 6, 12].forEach(function (n) { var op = el('option', '', n + (n > 1 ? ' mois' : ' mois')); op.value = n; sm.appendChild(op); });
+    var la = el('label', '', 'Montant reçu (€)'); la.htmlFor = 'x' + t.transporteur_id;
+    var im = document.createElement('input'); im.type = 'number'; im.min = '0'; im.id = la.htmlFor; im.placeholder = 'Loyer × mois';
+    a.appendChild(lm); a.appendChild(sm); b.appendChild(la); b.appendChild(im); two.appendChild(a); two.appendChild(b);
+    det.appendChild(two);
+    var pb = el('button', 'go alt', 'Enregistrer ce paiement');
+    pb.onclick = function () {
+      act('admin_marquer_paye', { p_transporteur: t.transporteur_id, p_mois: parseInt(sm.value, 10), p_montant: im.value === '' ? null : parseFloat(im.value) },
+        'Paiement enregistré pour ' + t.email + '.');
+    };
+    det.appendChild(pb);
+
+    var two2 = el('div', 'two'), c = el('div'), e = el('div');
+    var ll = el('label', '', 'Loyer par mois (€)'); ll.htmlFor = 'l' + t.transporteur_id;
+    var il = document.createElement('input'); il.type = 'number'; il.min = '0'; il.id = ll.htmlFor; il.value = t.loyer || 0;
+    var ld = el('label', '', 'Date de fin'); ld.htmlFor = 'd' + t.transporteur_id;
+    var id = document.createElement('input'); id.type = 'date'; id.id = ld.htmlFor; id.value = t.date_echeance || '';
+    c.appendChild(ll); c.appendChild(il); e.appendChild(ld); e.appendChild(id); two2.appendChild(c); two2.appendChild(e);
+    det.appendChild(two2);
+    var mb = el('button', 'go alt', 'Modifier le loyer et la date');
+    mb.onclick = function () {
+      act('admin_modifier_abonnement', { p_transporteur: t.transporteur_id, p_statut: t.statut, p_date_echeance: id.value || null, p_loyer: il.value === '' ? null : parseFloat(il.value) },
+        'Abonnement modifié.');
+    };
+    det.appendChild(mb);
+    card.appendChild(det);
+    L.appendChild(card);
   });
-  const colisOk = !co.error;
-  (co.data || []).forEach(c => {
-    const t = proprio[c.voyage_id];
-    if (t) nbColis[t] = (nbColis[t] || 0) + 1;
-  });
-
-  const liste = ab.data;
-  const actifs = liste.filter(a => a.statut === "actif");
-  const loyers = actifs.reduce((s, a) => s + Number(a.loyer || 0), 0);
-  $("stats").innerHTML =
-    `<div class="stat"><b>${actifs.length}/${liste.length}</b>transporteurs actifs</div>` +
-    `<div class="stat"><b>${loyers} €</b>loyers par mois</div>` +
-    `<div class="stat"><b>${(vo.data || []).length}</b>voyages</div>` +
-    `<div class="stat"><b>${colisOk ? (co.data || []).length : "–"}</b>colis</div>`;
-
-  $("liste").innerHTML = liste.length ? liste.map(a => `
-    <div class="carte ${esc(a.statut)}">
-      <h2>${esc(a.email)}</h2>
-      <div class="meta">${a.statut === "actif" ? "Actif" : "Suspendu"} · ${nbVoyages[a.transporteur_id] || 0} voyages · ${colisOk ? (nbColis[a.transporteur_id] || 0) : "–"} colis</div>
-      <div class="champs">
-        <div><label for="l-${a.transporteur_id}">Loyer (€ / mois)</label>
-          <input id="l-${a.transporteur_id}" type="number" min="0" step="1" value="${esc(a.loyer)}"></div>
-        <div><label for="d-${a.transporteur_id}">Prochaine échéance</label>
-          <input id="d-${a.transporteur_id}" type="date" value="${esc(a.date_echeance)}"></div>
-      </div>
-      <div class="actions">
-        <button onclick="enregistrer('${a.transporteur_id}')">Enregistrer</button>
-        <button class="ghost" onclick="basculer('${a.transporteur_id}','${a.statut}')">${a.statut === "actif" ? "Suspendre" : "Réactiver"}</button>
-      </div>
-    </div>`).join("") : "<p>Aucun transporteur pour l’instant.</p>";
 }
 
-async function enregistrer(id) {
-  const { error } = await sb.from("abonnements").update({
-    loyer: Number($("l-" + id).value || 0),
-    date_echeance: $("d-" + id).value || null
-  }).eq("transporteur_id", id);
-  $("msg").textContent = error ? "Erreur : " + error.message : "";
-  charger();
-}
-
-async function basculer(id, statut) {
-  const { error } = await sb.from("abonnements")
-    .update({ statut: statut === "actif" ? "suspendu" : "actif" })
-    .eq("transporteur_id", id);
-  $("msg").textContent = error ? "Erreur : " + error.message : "";
-  charger();
-}
-
-if (recuperation) afficherReset(); else demarrer();
+$('aadd').onclick = async function () {
+  var m = $('aemail').value.trim();
+  if (!m) { note('Indiquez l’e-mail du transporteur.'); return; }
+  var ok = await act('admin_ajouter_transporteur',
+    { p_email: m, p_jours_essai: parseInt($('ajours').value, 10) || 0, p_loyer: parseFloat($('aloyer').value) || 0 },
+    m + ' ajouté avec un essai gratuit.');
+  if (ok) { $('aemail').value = ''; }
+};
 </script>
 </body>
 </html>
