@@ -8,13 +8,16 @@
 <style>
 :root{--encre:#12263A;--mer:#1D5C7A;--fond:#F4F7F9;--ligne:#D5DEE5;--ok:#2F7D4F;--stop:#B3402F}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;font:16px/1.5 system-ui,sans-serif;color:var(--encre);background:var(--fond);padding:16px;max-width:720px;margin-inline:auto}
 h1{font-size:1.5rem;margin:8px 0 16px}
 input{font:inherit;padding:10px;border:1px solid var(--ligne);border-radius:6px;width:100%;background:#fff;color:var(--encre)}
 button{font:inherit;padding:10px 14px;border:0;border-radius:6px;background:var(--mer);color:#fff;cursor:pointer}
 button.ghost{background:#fff;color:var(--encre);border:1px solid var(--ligne)}
 button:focus-visible,input:focus-visible{outline:3px solid #7FB3CC;outline-offset:2px}
-#login{display:grid;gap:10px}
+#login,#reset{display:grid;gap:10px}
+#reset h2{font-size:1.1rem;margin:0}
+.lien{color:var(--mer);font-size:.9rem;text-align:center;padding:4px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
 .stat{background:#fff;border:1px solid var(--ligne);border-radius:6px;padding:10px 12px}
 .stat b{display:block;font-size:1.5rem}
@@ -36,7 +39,15 @@ button:focus-visible,input:focus-visible{outline:3px solid #7FB3CC;outline-offse
   <input id="email" type="email" placeholder="Ton email" autocomplete="username">
   <input id="mdp" type="password" placeholder="Ton mot de passe" autocomplete="current-password">
   <button onclick="connexion()">Se connecter</button>
+  <a href="#" class="lien" onclick="oublie(); return false;">Mot de passe oublié ?</a>
 </div>
+
+<div id="reset" hidden>
+  <h2>Nouveau mot de passe</h2>
+  <input id="nmdp" type="password" placeholder="Nouveau mot de passe (8 caractères min.)" autocomplete="new-password">
+  <button onclick="nouveauMdp()">Enregistrer</button>
+</div>
+
 <p id="msg"></p>
 
 <div id="app" hidden>
@@ -54,6 +65,42 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+// --- Mot de passe oublié ---
+let recuperation = location.hash.includes("type=recovery");
+
+function afficherReset() {
+  recuperation = true;
+  $("login").hidden = true;
+  $("app").hidden = true;
+  $("reset").hidden = false;
+}
+
+sb.auth.onAuthStateChange(event => {
+  if (event === "PASSWORD_RECOVERY") afficherReset();
+});
+
+async function oublie() {
+  const email = $("email").value.trim();
+  if (!email) { $("msg").textContent = "Saisis d’abord ton email."; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://sabali.app/admin.html"
+  });
+  $("msg").textContent = error ? "Erreur : " + error.message : "Email envoyé, vérifie ta boîte mail.";
+}
+
+async function nouveauMdp() {
+  const p = $("nmdp").value;
+  if (p.length < 8) { $("msg").textContent = "8 caractères minimum."; return; }
+  const { error } = await sb.auth.updateUser({ password: p });
+  if (error) { $("msg").textContent = "Erreur : " + error.message; return; }
+  history.replaceState(null, "", location.pathname);
+  recuperation = false;
+  $("reset").hidden = true;
+  $("msg").textContent = "";
+  demarrer();
+}
+
+// --- Connexion ---
 async function connexion() {
   $("msg").textContent = "";
   const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("mdp").value });
@@ -142,7 +189,7 @@ async function basculer(id, statut) {
   charger();
 }
 
-demarrer();
+if (recuperation) afficherReset(); else demarrer();
 </script>
 </body>
 </html>
