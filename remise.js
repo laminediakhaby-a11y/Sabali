@@ -264,7 +264,7 @@
     if (e.adresse) tx.appendChild(el('div', 'small', '📍 ' + e.adresse));
     zone.appendChild(tx);
     [].slice.call(t.querySelectorAll('.small')).forEach(function (s) {
-      if (s.textContent.indexOf('Transporteur : ') === 0) s.remove();
+      if (s.textContent.indexOf('Transporteur : ') === 0 || s.textContent.indexOf('Carrier: ') === 0) s.remove();
     });
   }
   new MutationObserver(function () {
@@ -397,4 +397,90 @@
   new MutationObserver(function () { actionsScan(false); }).observe(document.getElementById('res'), { childList: true, subtree: true });
   var _draw = draw;
   draw = function () { _draw(); actionsScan(true); };
+
+  // ----- Langues : page de suivi en français ou en anglais -----
+  var lang = 'fr';
+  try { lang = localStorage.getItem('sabali_lang') || ((navigator.language || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'fr'); } catch (e) {}
+
+  var STAT = {
+    fr: { titre: 'Sabali – suivi de colis Europe · Afrique', tag: 'Suivez vos colis, de l’Europe jusqu’à la maison.', t1: 'Suivre mon colis', t2: 'Espace transporteur', lq: 'Votre code de suivi', ph: 'Exemple : SB-K7M2QX', btn: 'Où est mon colis ?' },
+    en: { titre: 'Sabali – parcel tracking Europe · Africa', tag: 'Track your parcels from Europe all the way home.', t1: 'Track my parcel', t2: 'Carrier area', lq: 'Your tracking code', ph: 'Example: SB-K7M2QX', btn: 'Where is my parcel?' }
+  };
+  var EXACT = {
+    'Reçu à l’entrepôt en Europe': 'Received at the warehouse in Europe',
+    'Parti d’Europe en bateau': 'Left Europe by ship',
+    'Arrivé au port africain': 'Arrived at the African port',
+    'Dédouanement terminé': 'Customs clearance completed',
+    'Arrivé à destination, prêt au retrait ou en livraison': 'Arrived at destination, ready for pickup or delivery',
+    'Livré': 'Delivered',
+    'Pris en charge': 'Picked up',
+    'Chargé dans le conteneur': 'Loaded into the container',
+    'Bateau parti': 'Ship has departed',
+    'En mer': 'At sea',
+    'Arrivé au port': 'Arrived at the port',
+    'Dédouané': 'Cleared customs',
+    'Remis': 'Handed over',
+    'Afrique': 'Africa',
+    'paiement complet ✓': 'fully paid ✓',
+    'Connexion impossible pour le moment. Réessayez dans un instant.': 'Unable to connect right now. Please try again in a moment.',
+    'Aucun colis avec ce code. Vérifiez le code reçu de votre transporteur.': 'No parcel found with this code. Check the code you received from your carrier.',
+    'Le site n’est pas encore relié à la base de données.': 'The site is not yet connected to the database.'
+  };
+  var MOIS = { janvier: 'January', 'février': 'February', mars: 'March', avril: 'April', mai: 'May', juin: 'June', juillet: 'July', 'août': 'August', septembre: 'September', octobre: 'October', novembre: 'November', 'décembre': 'December' };
+  var MOISRE = '(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)';
+  function mois(m) { return MOIS[m] || m; }
+  var MOTIFS = [
+    [/^Arrivé au port de (.+)$/, function (_, x) { return 'Arrived at the port of ' + x; }],
+    [/^En route par la route vers (.+)$/, function (_, x) { return 'On the road to ' + (x === 'la destination' ? 'the destination' : x); }],
+    [/^Voyage : (.+)$/, function (_, x) { return 'Shipment: ' + x; }],
+    [new RegExp('^départ le (\\d+) ' + MOISRE + '( \\d{4})?$'), function (_, j, m, a) { return 'departing on ' + j + ' ' + mois(m) + (a || ''); }],
+    [/^Transporteur : (.+)$/, function (_, x) { return 'Carrier: ' + x; }],
+    [/^Prix : (.+)$/, function (_, x) { return 'Price: ' + x; }],
+    [/^déjà payé : (.+)$/, function (_, x) { return 'already paid: ' + x; }],
+    [/^reste à payer : (.+)$/, function (_, x) { return 'balance due: ' + x; }],
+    [new RegExp('^(\\d+) ' + MOISRE + '( \\d{4})?$'), function (_, j, m, a) { return j + ' ' + mois(m) + (a || ''); }]
+  ];
+  function tr1(p) {
+    if (EXACT[p]) return EXACT[p];
+    for (var i = 0; i < MOTIFS.length; i++) { if (MOTIFS[i][0].test(p)) return p.replace(MOTIFS[i][0], MOTIFS[i][1]); }
+    return p;
+  }
+  function traduire(s) { return s.split(' · ').map(tr1).join(' · '); }
+  function traduireRes() {
+    if (lang !== 'en') return;
+    var w = document.createTreeWalker($('res'), NodeFilter.SHOW_TEXT), n, liste = [];
+    while ((n = w.nextNode())) { if (!n.parentNode.closest('.scan')) liste.push(n); }
+    liste.forEach(function (x) { var r = traduire(x.nodeValue); if (r !== x.nodeValue) x.nodeValue = r; });
+  }
+  new MutationObserver(traduireRes).observe($('res'), { childList: true, subtree: true });
+
+  var bFr = el('button', '', 'FR'), bEn = el('button', '', 'EN');
+  function styler(b, actif) {
+    b.style.cssText = 'font:inherit;font-weight:600;font-size:.85rem;border-radius:8px;padding:4px 10px;cursor:pointer;margin-left:6px;' +
+      (actif ? 'background:var(--gold);color:#2b1d00;border:1px solid var(--gold)' : 'background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)');
+    b.setAttribute('aria-pressed', actif ? 'true' : 'false');
+  }
+  function appliquer() {
+    var s = STAT[lang];
+    document.documentElement.lang = lang;
+    document.title = s.titre;
+    document.querySelector('.tag').textContent = s.tag;
+    $('t1').textContent = s.t1; $('t2').textContent = s.t2;
+    document.querySelector('label[for="q"]').textContent = s.lq;
+    $('q').placeholder = s.ph; $('find').textContent = s.btn;
+    styler(bFr, lang === 'fr'); styler(bEn, lang === 'en');
+  }
+  function choisir(l) {
+    lang = l;
+    try { localStorage.setItem('sabali_lang', l); } catch (e) {}
+    appliquer();
+    if ($('q').value.trim() && $('res').firstChild) find();
+  }
+  bFr.onclick = function () { choisir('fr'); };
+  bEn.onclick = function () { choisir('en'); };
+  var hero = document.querySelector('.hero div');
+  hero.style.position = 'relative';
+  var sel = el('div'); sel.style.cssText = 'position:absolute;top:-6px;right:0';
+  sel.appendChild(bFr); sel.appendChild(bEn); hero.appendChild(sel);
+  appliquer(); traduireRes();
 })();
