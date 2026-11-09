@@ -107,4 +107,82 @@
   }
   new MutationObserver(ajouter).observe(document.getElementById('vlist'), { childList: true, subtree: true });
   ajouter();
+
+  // ----- Paiement du colis : prix, déjà payé, reste à payer -----
+  var BTN = 'font:inherit;font-size:.9rem;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:9px;padding:6px 10px;cursor:pointer;margin-left:8px';
+  function euro(n) { return (Number(n) || 0).toLocaleString('fr-FR') + ' €'; }
+  function reste(c) { return Math.max((Number(c.prix) || 0) - (Number(c.paye) || 0), 0); }
+
+  function paiement(c) {
+    var d = dlg('Paiement du colis ' + c.code);
+    d.appendChild(el('p', 'small', 'Prix : ' + euro(c.prix) + ' · déjà payé : ' + euro(c.paye) + ' · reste : ' + euro(reste(c))));
+    var l = el('label', '', 'Montant reçu maintenant (€)'); l.htmlFor = 'pm-montant';
+    var i = document.createElement('input'); i.id = 'pm-montant'; i.type = 'number'; i.step = '0.01'; i.setAttribute('inputmode', 'decimal');
+    var er = el('div');
+    async function maj(total) {
+      er.textContent = '';
+      if (total < 0) { er.appendChild(msg('Le total payé ne peut pas être négatif.')); return; }
+      var o = await db.from('colis').update({ paye: total }).eq('id', c.id);
+      if (o.error) { er.appendChild(msg('Enregistrement impossible : ' + o.error.message)); return; }
+      d.close(); load();
+    }
+    var b1 = el('button', 'go', 'Ajouter ce paiement'), b2 = el('button', 'go alt', 'Tout est payé'), b3 = el('button', 'go alt', 'Fermer');
+    b1.onclick = function () {
+      var m = parseFloat(i.value);
+      if (!m) { er.textContent = ''; er.appendChild(msg('Indiquez le montant reçu.')); return; }
+      maj(Math.round(((Number(c.paye) || 0) + m) * 100) / 100);
+    };
+    b2.onclick = function () { maj(Number(c.prix) || 0); };
+    b3.onclick = function () { d.close(); };
+    [l, i, er, b1, b2, b3].forEach(function (x) { d.appendChild(x); });
+    d.showModal();
+  }
+
+  // Côté transporteur : une ligne « prix · payé · reste » avec un bouton sur chaque colis
+  function lignesPaiement() {
+    document.querySelectorAll('#list .track').forEach(function (card) {
+      if (card.querySelector('.pay')) return;
+      var k = card.querySelector('.code'); if (!k) return;
+      var c = colis.filter(function (x) { return x.code === k.textContent; })[0];
+      if (!c) return;
+      var row = el('div', 'pay small');
+      row.style.marginTop = '6px';
+      row.appendChild(document.createTextNode('💶 Prix ' + euro(c.prix) + ' · payé ' + euro(c.paye) + ' · '));
+      row.appendChild(el('strong', '', reste(c) > 0 ? 'reste ' + euro(reste(c)) : 'soldé'));
+      var b = el('button', '', 'Paiement'); b.style.cssText = BTN;
+      b.onclick = function () { paiement(c); };
+      row.appendChild(b);
+      card.insertBefore(row, card.querySelector('.acts'));
+    });
+  }
+  new MutationObserver(lignesPaiement).observe(document.getElementById('list'), { childList: true, subtree: true });
+  lignesPaiement();
+
+  // Côté client : « reste à payer » sous le code de suivi
+  async function lignePaiementClient(t) {
+    if (t.querySelector('.reste')) return;
+    var k = t.querySelector('.code'), top = t.querySelector('.top');
+    if (!k || !top) return;
+    var zone = el('div', 'reste small');
+    top.after(zone);
+    var o = await db.rpc('colis_paiement', { p_code: k.textContent });
+    if (o.error || !o.data || !(Number(o.data.prix) > 0)) return;
+    zone.style.marginTop = '8px';
+    zone.appendChild(document.createTextNode('Prix : ' + euro(o.data.prix) + ' · déjà payé : ' + euro(o.data.paye) + ' · '));
+    zone.appendChild(el('strong', '', Number(o.data.reste) > 0 ? 'reste à payer : ' + euro(o.data.reste) : 'paiement complet ✓'));
+  }
+  new MutationObserver(function () {
+    document.querySelectorAll('#res .track').forEach(lignePaiementClient);
+  }).observe(document.getElementById('res'), { childList: true, subtree: true });
+
+  // Message WhatsApp « colis arrivé » : ajoute le reste à payer
+  var _wt = waText;
+  waText = function (c) {
+    var t = _wt(c), r = reste(c);
+    if (r > 0 && t.indexOf('est arrivé !') > -1) {
+      var i = t.lastIndexOf('\n— ');
+      if (i > -1) t = t.slice(0, i) + '\nReste à payer : ' + euro(r) + t.slice(i);
+    }
+    return t;
+  };
 })();
