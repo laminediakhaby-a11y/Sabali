@@ -270,4 +270,131 @@
   new MutationObserver(function () {
     document.querySelectorAll('#res .track').forEach(ligneEntreprise);
   }).observe(document.getElementById('res'), { childList: true, subtree: true });
+
+  // ----- QR code : étiquette à imprimer + actions rapides après scan -----
+  function lienSuivi(c) { return location.origin + location.pathname + '?code=' + c.code; }
+
+  function chargerQR() {
+    return new Promise(function (ok, ko) {
+      if (window.qrcode) return ok();
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+      s.onload = ok;
+      s.onerror = function () { ko(new Error('Impossible de charger le générateur de QR code. Vérifiez votre connexion.')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function dessinerQR(texte, px) {
+    var q = qrcode(0, 'M'); q.addData(texte); q.make();
+    var n = q.getModuleCount(), m = 2, NS = 'http://www.w3.org/2000/svg', chemin = '';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + (n + 2 * m) + ' ' + (n + 2 * m));
+    svg.setAttribute('width', px); svg.setAttribute('height', px);
+    var fond = document.createElementNS(NS, 'rect');
+    fond.setAttribute('width', '100%'); fond.setAttribute('height', '100%'); fond.setAttribute('fill', '#fff');
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
+      if (q.isDark(r, c)) chemin += 'M' + (c + m) + ' ' + (r + m) + 'h1v1h-1z';
+    }
+    var p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', chemin); p.setAttribute('fill', '#000'); p.setAttribute('shape-rendering', 'crispEdges');
+    svg.appendChild(fond); svg.appendChild(p);
+    return svg;
+  }
+
+  function etiquette(c) {
+    var m = (user && user.user_metadata) || {};
+    var d = document.createElement('div');
+    d.style.cssText = 'box-sizing:border-box;width:300px;margin:8px auto;padding:14px;border:2px solid #000;border-radius:8px;background:#fff;color:#000;text-align:center;font-family:Arial,sans-serif';
+    var t = el('div', '', m.nom || 'Sabali'); t.style.cssText = 'font-weight:bold;font-size:16px;margin-bottom:8px';
+    var q = document.createElement('div'); q.appendChild(dessinerQR(lienSuivi(c), 220));
+    var k = el('div', '', c.code); k.style.cssText = 'font-family:monospace;font-weight:bold;font-size:26px;letter-spacing:2px;margin-top:6px';
+    var s = el('div', '', 'Scannez pour suivre votre colis'); s.style.cssText = 'font-size:12px;margin-top:4px';
+    var dest = el('div', '', [c.destinataire, c.ville].filter(Boolean).join(' · ')); dest.style.cssText = 'font-size:13px;font-weight:bold;margin-top:6px';
+    [t, q, k, s, dest].forEach(function (x) { d.appendChild(x); });
+    return d;
+  }
+
+  function imprimer(noeud) {
+    var f = document.createElement('iframe');
+    f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+    document.body.appendChild(f);
+    var d = f.contentDocument;
+    d.body.style.margin = '0';
+    d.body.appendChild(d.importNode(noeud, true));
+    f.contentWindow.onafterprint = function () { f.remove(); };
+    setTimeout(function () { f.remove(); }, 120000);
+    f.contentWindow.focus(); f.contentWindow.print();
+  }
+
+  async function ouvrirEtiquette(c) {
+    var d = dlg('Étiquette du colis ' + c.code);
+    var bf = el('button', 'go alt', 'Fermer'); bf.onclick = function () { d.close(); };
+    try { await chargerQR(); } catch (x) { d.appendChild(msg(x.message)); d.appendChild(bf); d.showModal(); return; }
+    var p = el('p', 'small', 'Imprimez cette étiquette et collez-la sur le colis. Le client la scanne avec l’appareil photo de son téléphone.');
+    var bi = el('button', 'go', 'Imprimer'); bi.onclick = function () { imprimer(etiquette(c)); };
+    [p, etiquette(c), bi, bf].forEach(function (x) { d.appendChild(x); });
+    d.showModal();
+  }
+
+  function boutonsQR() {
+    document.querySelectorAll('#list .track').forEach(function (card) {
+      var a = card.querySelector('.acts'), k = card.querySelector('.code');
+      if (!a || !k || a.querySelector('.qr')) return;
+      var c = colis.filter(function (x) { return x.code === k.textContent; })[0];
+      if (!c) return;
+      var b = el('button', 'qr', 'Étiquette QR');
+      b.onclick = function () { ouvrirEtiquette(c); };
+      a.appendChild(b);
+    });
+  }
+  new MutationObserver(boutonsQR).observe(document.getElementById('list'), { childList: true, subtree: true });
+  boutonsQR();
+
+  // Après un scan : le transporteur connecté voit des boutons d'action sous le suivi
+  function actionsScan(force) {
+    document.querySelectorAll('#res .track').forEach(function (t) {
+      var ex = t.querySelector('.scan');
+      if (ex && !force) return;
+      if (ex) ex.remove();
+      var k = t.querySelector('.code');
+      if (!k || !user) return;
+      var c = colis.filter(function (x) { return x.code === k.textContent; })[0];
+      if (!c) return;
+      var box = el('div', 'scan'), er = el('div'), acts = el('div', 'acts'), st = stepsFor(c);
+      box.style.cssText = 'margin-top:14px;padding:12px;border:2px dashed var(--gold);border-radius:12px';
+      box.appendChild(el('strong', '', 'Ce colis est à vous'));
+      box.appendChild(el('div', 'small', 'Statut actuel : ' + st[c.etape]));
+      var v = c.voyage_id ? voyages.filter(function (x) { return x.id === c.voyage_id; })[0] : null;
+      var fin = async function () { await load(); $('q').value = c.code; find(); };
+      if (v) {
+        box.appendChild(el('div', 'small', 'Voyage : ' + v.nom + ' · ' + VSTEPS[v.etape]));
+        if (c.etape === 6) {
+          box.appendChild(el('div', 'small', 'Ce colis a été remis.'));
+        } else if (v.etape === 5) {
+          var rb = el('button', 'next', 'Remis');
+          rb.onclick = async function () { rb.disabled = true; await vcall('marquer_remis', { p_colis: c.id }); fin(); };
+          acts.appendChild(rb);
+        } else {
+          box.appendChild(el('div', 'small', 'Faites avancer le voyage depuis votre espace transporteur.'));
+        }
+      } else if (c.etape < st.length - 1) {
+        var nb = el('button', 'next', 'Passer à : ' + st[c.etape + 1]);
+        nb.onclick = async function () {
+          nb.disabled = true;
+          var o = await db.rpc('avancer_colis', { p_colis: c.id });
+          if (o.error) { er.textContent = ''; er.appendChild(msg(o.error.message)); nb.disabled = false; return; }
+          fin();
+        };
+        acts.appendChild(nb);
+      } else {
+        box.appendChild(el('div', 'small', 'Ce colis est livré.'));
+      }
+      box.appendChild(acts); box.appendChild(er);
+      t.appendChild(box);
+    });
+  }
+  new MutationObserver(function () { actionsScan(false); }).observe(document.getElementById('res'), { childList: true, subtree: true });
+  var _draw = draw;
+  draw = function () { _draw(); actionsScan(true); };
 })();
