@@ -185,4 +185,89 @@
     }
     return t;
   };
+
+  // ----- Profil de l'entreprise : logo, adresse, contact -----
+  function reduirePng(f) {
+    return new Promise(function (ok, ko) {
+      var img = new Image(), u = URL.createObjectURL(f);
+      img.onload = function () {
+        var k = Math.min(1, 256 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(u);
+        c.toBlob(function (b) { b ? ok(b) : ko(new Error('Image illisible')); }, 'image/png');
+      };
+      img.onerror = function () { ko(new Error('Image illisible')); };
+      img.src = u;
+    });
+  }
+  function urlLogo(m) { return db.storage.from('logos').getPublicUrl(m.logo).data.publicUrl + '?v=' + (m.logo_v || ''); }
+
+  var sm = $('savemsg'), det = sm.closest('details');
+  det.querySelector('summary').textContent = 'Mon profil : logo, adresse et contact';
+  det.querySelector('p.small').textContent = 'Affichés à vos clients sur la page de suivi. L’adresse et le numéro sont aussi ajoutés au message WhatsApp « colis arrivé ».';
+  var ll = el('label', '', 'Logo de votre entreprise (facultatif)'); ll.htmlFor = 'logo-file';
+  var lf = document.createElement('input'); lf.type = 'file'; lf.id = 'logo-file'; lf.accept = 'image/*';
+  var lp = document.createElement('img'); lp.alt = 'Logo actuel'; lp.hidden = true;
+  lp.style.cssText = 'max-height:56px;max-width:100%;margin-top:8px;border-radius:10px;object-fit:contain';
+  sm.before(ll, lf, lp);
+  function apercu() {
+    var m = (user && user.user_metadata) || {};
+    if (m.logo) { lp.src = urlLogo(m); lp.hidden = false; } else { lp.hidden = true; }
+  }
+  det.addEventListener('toggle', apercu);
+
+  var _sm = sm.onclick;
+  sm.onclick = async function () {
+    var f = lf.files[0];
+    if (f) {
+      var e = $('merr'); e.textContent = '';
+      try {
+        var chemin = user.id + '/logo.png';
+        var up = await db.storage.from('logos').upload(chemin, await reduirePng(f), { upsert: true, contentType: 'image/png' });
+        if (up.error) throw up.error;
+        var u = await db.auth.updateUser({ data: { logo: chemin, logo_v: Date.now() } });
+        if (u.error) throw u.error;
+        lf.value = '';
+      } catch (x) { e.appendChild(msg('Logo non enregistré : ' + x.message)); return; }
+    }
+    var r = await _sm.call(this);
+    setTimeout(apercu, 1000);
+    return r;
+  };
+
+  // Côté client : logo, nom, téléphone et adresse du transporteur en haut du suivi
+  async function ligneEntreprise(t) {
+    if (t.querySelector('.ent')) return;
+    var zone = el('div', 'ent');
+    t.prepend(zone);
+    var k = t.querySelector('.code'); if (!k) return;
+    var o = await db.rpc('entreprise_info', { p_code: k.textContent });
+    if (o.error || !o.data || !(o.data.nom || o.data.logo)) return;
+    var e = o.data;
+    zone.style.cssText = 'display:flex;gap:12px;align-items:center;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line)';
+    if (e.logo) {
+      var im = document.createElement('img');
+      im.src = urlLogo(e); im.alt = 'Logo de ' + e.nom;
+      im.style.cssText = 'width:52px;height:52px;object-fit:contain;border-radius:10px;flex:none';
+      zone.appendChild(im);
+    }
+    var tx = el('div'); tx.appendChild(el('strong', '', e.nom));
+    if (e.contact) {
+      var p = el('div', 'small', '📞 ');
+      if (/^[+\d\s().-]{6,20}$/.test(e.contact)) {
+        var a = el('a', '', e.contact); a.href = 'tel:' + e.contact.replace(/[^\d+]/g, ''); a.style.color = 'inherit';
+        p.appendChild(a);
+      } else { p.appendChild(document.createTextNode(e.contact)); }
+      tx.appendChild(p);
+    }
+    if (e.adresse) tx.appendChild(el('div', 'small', '📍 ' + e.adresse));
+    zone.appendChild(tx);
+    [].slice.call(t.querySelectorAll('.small')).forEach(function (s) {
+      if (s.textContent.indexOf('Transporteur : ') === 0) s.remove();
+    });
+  }
+  new MutationObserver(function () {
+    document.querySelectorAll('#res .track').forEach(ligneEntreprise);
+  }).observe(document.getElementById('res'), { childList: true, subtree: true });
 })();
