@@ -89,12 +89,12 @@
     d.showModal();
   }
 
-  async function ajouterBoutons() {
+  async function ajouterBoutons(liste) {
     var moi = ++tour;
     var ok = await chargerEnvois();
     if (moi !== tour) return;
     var cartes = document.querySelectorAll('#vlist > .track');
-    voyages.forEach(function (v, i) {
+    liste.forEach(function (v, i) {
       var card = cartes[i];
       if (!card || card.querySelector('.groupe') || !aPrevenir(v).length) return;
       var b = el('button', 'go groupe', texteBouton(v));
@@ -109,8 +109,52 @@
     });
   }
 
+  // ----- Ranger les anciens voyages (ils disparaissent de la liste, le suivi client continue) -----
+  var PETIT = 'font:inherit;font-size:.9rem;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:9px;padding:7px 11px;cursor:pointer';
+
+  async function ranger(v, valeur) {
+    var o = await db.rpc('archiver_voyage', { p_voyage: v.id, p_archive: valeur });
+    var e = $('verr'); e.textContent = '';
+    if (o.error) { e.appendChild(msg('Action impossible : ' + o.error.message)); return; }
+    load();
+  }
+
+  function ajouterRanger(actifs, ranges) {
+    var cartes = document.querySelectorAll('#vlist > .track');
+    actifs.forEach(function (v, i) {
+      var card = cartes[i];
+      if (!card || card.querySelector('.ranger')) return;
+      var b = el('button', 'ranger', '🗄️ Ranger ce voyage');
+      b.style.cssText = PETIT + ';margin-top:12px';
+      b.onclick = function () {
+        if (!confirm('Ranger le voyage « ' + v.nom + ' » ?\nIl disparaîtra de la liste, mais vos clients pourront toujours suivre leurs colis. Vous pourrez le ressortir en bas de la liste.')) return;
+        b.disabled = true; ranger(v, true);
+      };
+      card.appendChild(b);
+    });
+    if (!ranges.length) return;
+    var d = document.createElement('details');
+    d.appendChild(el('summary', '', '🗄️ Voyages rangés (' + ranges.length + ')'));
+    ranges.forEach(function (v) {
+      var r = el('div', 'row'), t = el('div');
+      t.appendChild(el('div', 'code', v.nom));
+      t.appendChild(el('div', 'small', 'Départ le ' + fr(v.date_depart) + ' · ' + VSTEPS[v.etape]));
+      var b = el('button', '', 'Ressortir'); b.style.cssText = PETIT;
+      b.onclick = function () { b.disabled = true; ranger(v, false); };
+      r.appendChild(t); r.appendChild(b); d.appendChild(r);
+    });
+    $('vlist').appendChild(d);
+  }
+
   var _dv = drawVoyages;
-  drawVoyages = function () { _dv(); ajouterBoutons(); };
-  // Si les voyages étaient déjà affichés avant le chargement de ce fichier, on ajoute les boutons tout de suite
-  if (db && user && voyages.length) ajouterBoutons();
+  drawVoyages = function () {
+    var tous = voyages;
+    var actifs = tous.filter(function (v) { return !v.archive; });
+    voyages = actifs;
+    try { _dv(); } finally { voyages = tous; }
+    ajouterRanger(actifs, tous.filter(function (v) { return v.archive; }));
+    ajouterBoutons(actifs);
+  };
+  // Si les voyages étaient déjà affichés avant le chargement de ce fichier, on les redessine tout de suite
+  if (db && user && voyages.length) drawVoyages();
 })();
