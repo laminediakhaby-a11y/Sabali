@@ -111,4 +111,6 @@
 
   var _dv = drawVoyages;
   drawVoyages = function () { _dv(); ajouterBoutons(); };
+  // Si les voyages étaient déjà affichés avant le chargement de ce fichier, on ajoute les boutons tout de suite
+  if (db && user && voyages.length) ajouterBoutons();
 })();
