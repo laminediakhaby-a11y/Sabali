@@ -203,6 +203,61 @@
     titreColis.before(h, $('verr'), $('vlist'));
   })();
 
+  // ----- Supprimer mon compte (obligatoire pour l'App Store) -----
+  (function () {
+    var det = $('savemsg').closest('details');
+    det.querySelector('summary').textContent = 'Mon profil et mon compte : logo, adresse, contact';
+    var zone = el('div');
+    zone.style.cssText = 'margin-top:18px;padding-top:14px;border-top:1px solid var(--line)';
+    zone.appendChild(el('strong', '', 'Supprimer mon compte'));
+    zone.appendChild(el('p', 'small', 'Supprime définitivement votre compte et toutes vos données : colis, voyages, preuves de remise, logo. Vos clients ne pourront plus suivre leurs colis.'));
+    var b = el('button', 'go alt', 'Supprimer mon compte');
+    b.style.cssText = 'color:var(--bad);border-color:var(--bad)';
+    b.onclick = confirmer;
+    zone.appendChild(b);
+    det.appendChild(zone);
+
+    function confirmer() {
+      var d = document.createElement('dialog');
+      d.style.cssText = 'border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);max-width:420px;width:calc(100% - 32px);padding:16px;font-family:inherit';
+      d.appendChild(el('strong', '', 'Supprimer définitivement votre compte ?'));
+      d.appendChild(el('p', 'small', 'Cette action est irréversible. Tous vos colis, voyages, preuves de remise et votre logo seront effacés, et vos clients ne pourront plus suivre leurs colis.'));
+      var l = el('label', '', 'Pour confirmer, écrivez SUPPRIMER'); l.htmlFor = 'del-ok';
+      var i = document.createElement('input'); i.id = 'del-ok'; i.autocomplete = 'off'; i.setAttribute('autocapitalize', 'characters');
+      var er = el('div');
+      var go = el('button', 'go', 'Supprimer définitivement');
+      go.style.cssText = 'background:var(--bad);color:#fff';
+      var an = el('button', 'go alt', 'Annuler');
+      an.onclick = function () { d.close(); };
+      go.onclick = async function () {
+        er.textContent = '';
+        if (i.value.trim().toUpperCase() !== 'SUPPRIMER') { er.appendChild(msg('Écrivez SUPPRIMER pour confirmer.')); return; }
+        go.disabled = true; an.disabled = true; go.textContent = 'Suppression en cours…';
+        var id = user.id;
+        try {
+          var lp = await db.storage.from('preuves').list(id, { limit: 1000 });
+          if (lp.data && lp.data.length) await db.storage.from('preuves').remove(lp.data.map(function (f) { return id + '/' + f.name; }));
+          await db.storage.from('logos').remove([id + '/logo.png']);
+        } catch (x) {}
+        var o = await db.rpc('supprimer_mon_compte');
+        if (o.error) {
+          er.appendChild(msg('Suppression impossible : ' + o.error.message));
+          go.disabled = false; an.disabled = false; go.textContent = 'Supprimer définitivement';
+          return;
+        }
+        d.close();
+        try { await db.auth.signOut(); } catch (x) {}
+        try { localStorage.removeItem('sb-' + new URL(SUPABASE_URL).hostname.split('.')[0] + '-auth-token'); } catch (x) {}
+        user = null; show();
+        authMsg('Votre compte et toutes vos données ont été supprimés.', true);
+      };
+      [l, i, er, go, an].forEach(function (x) { d.appendChild(x); });
+      d.onclose = function () { d.remove(); };
+      document.body.appendChild(d);
+      d.showModal();
+    }
+  })();
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
