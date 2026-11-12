@@ -298,6 +298,75 @@
     $('q').onkeydown = function (e) { if (e.key === 'Enter') find(); };
   })();
 
+  // ----- Mot de passe oublié -----
+  (function () {
+    var lien = el('button', '', 'Mot de passe oublié ?');
+    lien.style.cssText = 'display:block;margin:12px auto 0;font:inherit;font-size:.95rem;color:var(--ink);background:none;border:0;text-decoration:underline;cursor:pointer';
+    $('signup').after(lien);
+    lien.onclick = async function () {
+      var mail = $('email').value.trim();
+      if (!mail) { authMsg('Écrivez votre e-mail dans la case « E-mail », puis touchez « Mot de passe oublié ? ».'); $('email').focus(); return; }
+      lien.disabled = true;
+      var o = await db.auth.resetPasswordForEmail(mail, { redirectTo: location.origin + '/?reset=1' });
+      lien.disabled = false;
+      if (o.error) { authMsg('Envoi impossible : ' + o.error.message); return; }
+      authMsg('Si un compte existe avec cet e-mail, vous allez recevoir un lien pour choisir un nouveau mot de passe. Pensez à regarder dans les spams.', true);
+    };
+
+    function nouveauMotDePasse() {
+      var d = document.createElement('dialog');
+      d.style.cssText = 'border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);max-width:420px;width:calc(100% - 32px);padding:16px;font-family:inherit';
+      d.appendChild(el('strong', '', 'Choisissez un nouveau mot de passe'));
+      var l1 = el('label', '', 'Nouveau mot de passe (8 caractères minimum)'); l1.htmlFor = 'np1';
+      var i1 = document.createElement('input'); i1.type = 'password'; i1.id = 'np1'; i1.autocomplete = 'new-password';
+      var l2 = el('label', '', 'Confirmez le mot de passe'); l2.htmlFor = 'np2';
+      var i2 = document.createElement('input'); i2.type = 'password'; i2.id = 'np2'; i2.autocomplete = 'new-password';
+      var er = el('div'), ok = el('button', 'go', 'Enregistrer le mot de passe');
+      ok.onclick = async function () {
+        er.textContent = '';
+        if (i1.value.length < 8) { er.appendChild(msg('Le mot de passe doit avoir au moins 8 caractères.')); return; }
+        if (i1.value !== i2.value) { er.appendChild(msg('Les deux mots de passe ne sont pas identiques.')); return; }
+        ok.disabled = true;
+        var o = await db.auth.updateUser({ password: i1.value });
+        ok.disabled = false;
+        if (o.error) { er.appendChild(msg('Changement impossible : ' + o.error.message)); return; }
+        try { history.replaceState(null, '', location.pathname); } catch (x) {}
+        d.close();
+        tab(2);
+        var m = $('merr'); m.textContent = '';
+        alerteOk('Votre mot de passe a été changé. Vous êtes connecté.');
+      };
+      [l1, i1, l2, i2, er, ok].forEach(function (x) { d.appendChild(x); });
+      d.onclose = function () { d.remove(); };
+      document.body.appendChild(d);
+      d.showModal();
+    }
+    function alerteOk(t) {
+      var z = msg(t, 'info'); z.style.marginBottom = '12px';
+      var panel = document.querySelector('.panel');
+      panel.insertBefore(z, panel.querySelector('.tabs').nextSibling);
+      setTimeout(function () { z.remove(); }, 8000);
+    }
+
+    var demande = new URLSearchParams(location.search).get('reset') === '1' || /type=recovery/.test(location.hash);
+    var ouvert = false;
+    function ouvrir() { if (ouvert) return; ouvert = true; nouveauMotDePasse(); }
+    db.auth.onAuthStateChange(function (ev, s) {
+      if (ev === 'PASSWORD_RECOVERY' || (demande && s)) setTimeout(ouvrir, 0);
+    });
+    if (demande) {
+      db.auth.getSession().then(function (r) {
+        if (r.data && r.data.session) ouvrir();
+        else setTimeout(function () {
+          db.auth.getSession().then(function (r2) {
+            if (r2.data && r2.data.session) ouvrir();
+            else { tab(2); authMsg('Ce lien n’est plus valable. Touchez « Mot de passe oublié ? » pour en recevoir un nouveau.'); }
+          });
+        }, 1500);
+      });
+    }
+  })();
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
