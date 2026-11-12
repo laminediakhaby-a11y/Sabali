@@ -258,6 +258,46 @@
     }
   })();
 
+  // ----- Hors connexion : message clair + ouverture du site sans internet -----
+  (function () {
+    if ('serviceWorker' in navigator) {
+      try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (x) {}
+    }
+    var bandeau = el('div', 'msg', '📡 Pas de connexion internet. Vos colis et voyages s’afficheront dès que le réseau reviendra.');
+    bandeau.setAttribute('role', 'status');
+    bandeau.style.marginTop = '0'; bandeau.style.marginBottom = '12px';
+    var panel = document.querySelector('.panel');
+    panel.insertBefore(bandeau, panel.firstChild);
+    function maj() {
+      bandeau.hidden = navigator.onLine;
+      if (!navigator.onLine) {
+        bandeau.textContent = (typeof lang !== 'undefined' && lang === 'en')
+          ? '📡 No internet connection. Your parcels will appear as soon as the network is back.'
+          : '📡 Pas de connexion internet. Vos colis et voyages s’afficheront dès que le réseau reviendra.';
+      }
+    }
+    window.addEventListener('offline', maj);
+    window.addEventListener('online', function () {
+      maj();
+      if (user) load();
+      if ($('q').value.trim() && $('res').firstChild) find();
+    });
+    maj();
+
+    var _load = load;
+    load = function () {
+      if (!navigator.onLine) { maj(); return Promise.resolve(); }
+      return _load.apply(this, arguments);
+    };
+    var _find = find;
+    find = function () {
+      if (!navigator.onLine) { maj(); $('res').textContent = ''; return Promise.resolve(); }
+      return _find.apply(this, arguments);
+    };
+    $('find').onclick = function () { find(); };
+    $('q').onkeydown = function (e) { if (e.key === 'Enter') find(); };
+  })();
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
