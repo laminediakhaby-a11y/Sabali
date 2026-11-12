@@ -5,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f3d2e">
 <meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="sabali-logo.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Sabali – administration</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
-:root{--bg:#f3f6f2;--card:#fff;--ink:#12261d;--mute:#5a6d63;--brand:#0f3d2e;--gold:#e3a82b;--line:#d9e3dc;--ok:#1a7f4b;--bad:#b3261e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root{--bg:#0b1812;--card:#14261d;--ink:#e8f3ec;--mute:#9bb3a6;--brand:#0a2a20;--line:#25402f;--ok:#5fd394;--bad:#ff8a80;color-scheme:dark}}
+:root{--bg:#fbf7ee;--card:#fffdf7;--ink:#12261d;--mute:#6b6b55;--brand:#0f3d2e;--gold:#e3a82b;--line:#e9e2cf;--ok:#1a7f4b;--bad:#b5452a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0c1611;--card:#15241c;--ink:#f3efe3;--mute:#b3ad98;--brand:#0a2a20;--line:#2c3f33;--ok:#5fd394;--bad:#f0997b;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Outfit',system-ui,sans-serif;line-height:1.45}
 .hero{background:var(--brand);color:#fff;padding:24px 18px 60px;border-bottom:4px solid var(--gold)}
@@ -18,7 +20,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Outfit',system-
 .brand{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1}.brand span{color:var(--gold)}
 .tag{margin:8px 0 0;opacity:.9}
 main{max-width:640px;margin:-40px auto 0;padding:0 16px 48px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(15,61,46,.12)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(60,45,10,.10)}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 label{display:block;font-weight:600;margin:10px 0 4px;font-size:.95rem}
 input,select{width:100%;font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:10px;padding:11px 12px}
