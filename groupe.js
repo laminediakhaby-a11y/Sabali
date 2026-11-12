@@ -367,6 +367,98 @@
     }
   })();
 
+  // ----- Scanner de QR code intégré (étiquettes Sabali) -----
+  (function () {
+    function chargerJsQR() {
+      return new Promise(function (ok, ko) {
+        if (window.jsQR) return ok();
+        var sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+        sc.onload = ok;
+        sc.onerror = function () { ko(new Error('Impossible de charger le scanner. Vérifiez votre connexion.')); };
+        document.head.appendChild(sc);
+      });
+    }
+    function extraireCode(t) {
+      try { var c = new URL(t).searchParams.get('code'); if (c) return c.trim().toUpperCase(); } catch (x) {}
+      var m = String(t).toUpperCase().match(/SB-[A-Z0-9]{4,}/);
+      return m ? m[0] : null;
+    }
+
+    function scanner() {
+      var d = document.createElement('dialog');
+      d.style.cssText = 'border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);max-width:460px;width:calc(100% - 24px);padding:14px;font-family:inherit';
+      d.appendChild(el('strong', '', 'Scanner une étiquette Sabali'));
+      d.appendChild(el('p', 'small', 'Placez le QR code de l’étiquette dans le cadre.'));
+      var cadre = el('div');
+      cadre.style.cssText = 'position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:1/1';
+      var v = document.createElement('video');
+      v.setAttribute('playsinline', ''); v.muted = true; v.autoplay = true;
+      v.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+      var viseur = el('div');
+      viseur.style.cssText = 'position:absolute;inset:18%;border:3px solid var(--gold);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.35)';
+      cadre.appendChild(v); cadre.appendChild(viseur);
+      var er = el('div'), f = el('button', 'go alt', 'Fermer');
+      [cadre, er, f].forEach(function (x) { d.appendChild(x); });
+      var flux = null, fini = false, c = document.createElement('canvas'), ctx = c.getContext('2d', { willReadFrequently: true });
+      function arreter() { fini = true; if (flux) flux.getTracks().forEach(function (t) { t.stop(); }); }
+      f.onclick = function () { d.close(); };
+      d.onclose = function () { arreter(); d.remove(); };
+      document.body.appendChild(d);
+      d.showModal();
+
+      function boucle() {
+        if (fini) return;
+        if (v.readyState >= 2 && v.videoWidth) {
+          var k = Math.min(1, 640 / Math.max(v.videoWidth, v.videoHeight));
+          c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
+          ctx.drawImage(v, 0, 0, c.width, c.height);
+          var img = ctx.getImageData(0, 0, c.width, c.height);
+          var r = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+          if (r && r.data) {
+            var code = extraireCode(r.data);
+            if (code) {
+              if (navigator.vibrate) try { navigator.vibrate(80); } catch (x) {}
+              d.close();
+              tab(1); $('q').value = code; find();
+              setTimeout(function () { $('res').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 400);
+              return;
+            }
+            er.textContent = ''; er.appendChild(msg('Ce QR code n’est pas une étiquette Sabali.'));
+          }
+        }
+        requestAnimationFrame(boucle);
+      }
+
+      chargerJsQR().then(function () {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Votre téléphone ne permet pas d’utiliser l’appareil photo ici.');
+        return navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      }).then(function (s) {
+        if (fini) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
+        flux = s; v.srcObject = s;
+        var pr = v.play(); if (pr && pr.catch) pr.catch(function () {});
+        boucle();
+      }).catch(function (x) {
+        er.textContent = '';
+        var t = x && (x.name === 'NotAllowedError' || x.name === 'SecurityError')
+          ? 'L’accès à l’appareil photo a été refusé. Autorisez-le dans les réglages du téléphone, puis réessayez.'
+          : (x && x.name === 'NotFoundError' ? 'Aucun appareil photo trouvé.' : (x.message || 'Scanner indisponible.'));
+        er.appendChild(msg(t));
+      });
+    }
+
+    var STYLE = 'display:flex;align-items:center;justify-content:center;gap:8px';
+    var b1 = el('button', 'go', '📷 Scanner un colis');
+    b1.style.cssText = STYLE + ';background:var(--brand);color:#fff;margin-top:12px';
+    b1.onclick = scanner;
+    $('dash').querySelector('.stat').after(b1);
+
+    var b2 = el('button', 'go alt', '📷 Scanner l’étiquette du colis');
+    b2.style.cssText = STYLE;
+    b2.onclick = scanner;
+    $('find').after(b2);
+  })();
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
