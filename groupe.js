@@ -146,6 +146,63 @@
     $('vlist').appendChild(d);
   }
 
+  // ----- Choisir le voyage directement en ajoutant un colis -----
+  var lv = el('label', '', 'Voyage (facultatif)'); lv.htmlFor = 'cvoy';
+  var sv = document.createElement('select'); sv.id = 'cvoy';
+  $('add').before(lv, sv);
+
+  function remplirVoyages(actifs) {
+    var choix = sv.value;
+    sv.textContent = '';
+    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— Aucun voyage pour l’instant —';
+    sv.appendChild(o0);
+    actifs.filter(function (v) { return v.etape < 6; }).forEach(function (v) {
+      var o = document.createElement('option');
+      o.value = v.id; o.textContent = v.nom + ' · départ le ' + fr(v.date_depart) + ' · ' + VSTEPS[v.etape];
+      sv.appendChild(o);
+    });
+    sv.value = choix;
+    if (sv.value !== choix) sv.value = '';
+  }
+
+  $('add').onclick = async function () {
+    var b = this, e = $('err'); e.textContent = '';
+    var f = $('from').value.trim(), t = $('to').value.trim();
+    if (!f || !t) { e.appendChild(msg('Indiquez au moins l’expéditeur et le destinataire.')); return; }
+    var telok = '';
+    if ($('tel').value.trim()) {
+      telok = cleanTel($('tel').value.trim());
+      if (!telok) { e.appendChild(msg('Numéro invalide. Écrivez-le avec l’indicatif du pays, par exemple +223 70 12 34 56.')); return; }
+    }
+    var row = {
+      expediteur: f, destinataire: t, origine: $('orig').value.trim(), port: $('port').value.trim(),
+      ville: $('city').value.trim(), contenu: $('what').value.trim(), kg: parseFloat($('kg').value) || 0,
+      prix: parseFloat($('price').value) || 0, route: $('road').value === '1'
+    };
+    if (telok) row.telephone = '+' + telok;
+    b.disabled = true;
+    try {
+      var o = await db.from('colis').insert(row).select('code').single();
+      if (o.error) { e.appendChild(msg('Enregistrement impossible : ' + o.error.message)); return; }
+      if (sv.value && o.data && o.data.code) {
+        var r = await db.rpc('ajouter_colis_voyage', { p_voyage: sv.value, p_codes: [o.data.code] });
+        if (r.error) e.appendChild(msg('Colis ' + o.data.code + ' enregistré, mais pas ajouté au voyage : ' + r.error.message));
+        else e.appendChild(msg('Colis ' + o.data.code + ' enregistré et ajouté au voyage.', 'info'));
+      } else if (o.data && o.data.code) {
+        e.appendChild(msg('Colis ' + o.data.code + ' enregistré.', 'info'));
+      }
+      ['from', 'to', 'tel', 'what', 'kg', 'price'].forEach(function (i) { $(i).value = ''; });
+      load();
+    } finally { b.disabled = false; }
+  };
+
+  // ----- Mise en page continue : créer un voyage, puis ajouter un colis, puis les listes -----
+  (function () {
+    var titreColis = $('list').previousElementSibling; // « Vos colis »
+    var h = el('h2', '', 'Mes voyages en cours');
+    titreColis.before(h, $('verr'), $('vlist'));
+  })();
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
@@ -153,6 +210,7 @@
     voyages = actifs;
     try { _dv(); } finally { voyages = tous; }
     ajouterRanger(actifs, tous.filter(function (v) { return v.archive; }));
+    remplirVoyages(actifs);
     ajouterBoutons(actifs);
   };
   // Si les voyages étaient déjà affichés avant le chargement de ce fichier, on les redessine tout de suite
