@@ -459,6 +459,18 @@
     $('find').after(b2);
   })();
 
+  // ----- Empêcher le navigateur de mettre l'e-mail dans la case du code de suivi -----
+  (function () {
+    var q = $('q');
+    q.setAttribute('name', 'sabali-code-suivi');
+    q.setAttribute('autocomplete', 'off');
+    q.setAttribute('data-lpignore', 'true');
+    q.setAttribute('data-form-type', 'other');
+    function nettoyer() { if (q.value.indexOf('@') > -1) q.value = ''; }
+    [0, 300, 1000, 2500].forEach(function (t) { setTimeout(nettoyer, t); });
+    q.addEventListener('input', nettoyer);
+  })();
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
