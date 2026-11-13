@@ -35,7 +35,7 @@ h2{font-size:1.05rem;margin:22px 0 10px}
 .badge{font-weight:600;font-size:.8rem;padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--ok) 16%,var(--card));color:var(--ok);white-space:nowrap}
 .badge.essai{background:color-mix(in srgb,var(--gold) 22%,var(--card));color:var(--ink)}
 .badge.bad{background:color-mix(in srgb,var(--bad) 15%,var(--card));color:var(--bad)}
-.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0 0}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0 0}
 .stat div{background:var(--bg);border-radius:14px;padding:12px;text-align:center}
 .stat b{display:block;font-size:1.4rem}.stat span{color:var(--mute);font-size:.85rem}
 .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
@@ -70,6 +70,7 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600}
         <div><b id="sa">0</b><span>transporteurs actifs</span></div>
         <div><b id="sr">0</b><span>à relancer</span></div>
         <div><b id="se">0 €</b><span>encaissé ce mois-ci</span></div>
+        <div><b id="sf">0 €</b><span id="sfl">à facturer</span></div>
       </div>
       <div id="note" role="status"></div>
 
@@ -77,12 +78,14 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600}
       <p class="small">Le transporteur doit d’abord avoir créé son compte sur le site avec cet e-mail.</p>
       <label for="aemail">E-mail du transporteur</label><input id="aemail" type="email">
       <div class="two">
-        <div><label for="ajours">Jours d’essai gratuit</label><input id="ajours" type="number" min="0" value="14"></div>
-        <div><label for="aloyer">Loyer par mois (€)</label><input id="aloyer" type="number" min="0" value="0"></div>
+        <div><label for="ajours">Jours d’essai gratuit</label><input id="ajours" type="number" min="0" value="3"></div>
+        <div><label for="aloyer">Loyer fixe par mois (€, facultatif)</label><input id="aloyer" type="number" min="0" value="0"></div>
       </div>
       <button class="go" id="aadd">Ajouter avec essai gratuit</button>
 
       <h2>Mes transporteurs</h2>
+      <label for="mois">Facturation au colis (0,50 € par colis parti) — mois</label>
+      <select id="mois"></select>
       <div id="list"></div>
     </div>
   </div>
@@ -95,7 +98,21 @@ var SUPABASE_KEY = 'sb_publishable_0EryPTXsbPoKxygFMUGSQg_szulCkW5';
 var $ = function (i) { return document.getElementById(i); };
 function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
 function fr(d) { return d ? new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'sans date de fin'; }
-function eur(n) { return (Number(n) || 0).toLocaleString('fr-FR') + ' €'; }
+function eur(n) { var v = Number(n) || 0; return v.toLocaleString('fr-FR', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' €'; }
+var PRIX_COLIS = 0.5;
+var facture = {};
+(function () {
+  var s = document.getElementById('mois'), d = new Date();
+  for (var i = 0; i < 6; i++) {
+    var m = new Date(d.getFullYear(), d.getMonth() - i, 1);
+    var o = document.createElement('option');
+    o.value = m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0') + '-01';
+    o.textContent = m.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) + (i === 0 ? ' (en cours)' : '');
+    s.appendChild(o);
+  }
+  s.onchange = function () { load(); };
+})();
+function nomMois() { var s = document.getElementById('mois'); return s.options[s.selectedIndex].textContent.replace(' (en cours)', ''); }
 function note(t, ok) { var e = $('note'); e.textContent = ''; if (t) e.appendChild(el('div', 'msg' + (ok ? ' info' : ''), t)); }
 
 var db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY), user = null;
@@ -129,6 +146,13 @@ async function load() {
   var p = await db.from('paiements').select('montant').gte('cree_le', debut);
   var encaisse = (p.data || []).reduce(function (s, x) { return s + (Number(x.montant) || 0); }, 0);
 
+  var f = await db.rpc('admin_facturation', { p_mois: $('mois').value });
+  facture = {};
+  if (!f.error) (f.data || []).forEach(function (x) { facture[x.transporteur_id] = x.nb_colis; });
+  var total = rows.reduce(function (s2, t) { return s2 + (facture[t.transporteur_id] || 0); }, 0);
+  $('sf').textContent = f.error ? '?' : eur(total * PRIX_COLIS);
+  $('sfl').textContent = 'à facturer en ' + nomMois();
+  if (f.error) note('Facturation au colis indisponible : ' + f.error.message);
   $('sa').textContent = rows.filter(function (t) { return t.etat === 'actif' || t.etat === 'essai'; }).length;
   $('sr').textContent = rows.filter(function (t) { return t.etat === 'expiré'; }).length;
   $('se').textContent = eur(encaisse);
@@ -150,17 +174,23 @@ function draw(rows) {
   rows.forEach(function (t) {
     var card = el('div', 'track'), top = el('div', 'top'), l = el('div');
     l.appendChild(el('div', 'code', t.email));
-    l.appendChild(el('div', 'small', t.nb_colis + ' colis · loyer ' + eur(t.loyer) + ' par mois'));
+    var nb = facture[t.transporteur_id] || 0, du = nb * PRIX_COLIS + (Number(t.loyer) || 0);
+    var fl = el('div', 'small'); fl.style.cssText = 'margin-top:4px;color:var(--ink)';
+    fl.appendChild(el('strong', '', nb + ' colis partis en ' + nomMois() + ' → ' + eur(du)));
+    if (Number(t.loyer) > 0) fl.appendChild(document.createTextNode(' (dont loyer fixe ' + eur(t.loyer) + ')'));
+    l.appendChild(fl);
+    l.appendChild(el('div', 'small', t.nb_colis + ' colis enregistrés au total'));
     l.appendChild(el('div', 'small', t.date_echeance ? 'Valable jusqu’au ' + fr(t.date_echeance) : 'Sans date de fin'));
     top.appendChild(l);
     top.appendChild(el('span', 'badge' + (t.etat === 'essai' ? ' essai' : (t.etat === 'actif' ? '' : ' bad')), t.etat));
     card.appendChild(top);
 
     var acts = el('div', 'acts');
-    var pay = el('button', 'next', 'Payé · 1 mois');
+    var pay = el('button', 'next', du > 0 ? 'Payé · ' + eur(du) + ' (' + nomMois() + ')' : 'Payé · 1 mois');
     pay.onclick = function () {
+      if (du > 0 && !confirm('Enregistrer un paiement de ' + eur(du) + ' de ' + t.email + ' pour ' + nomMois() + ' ?')) return;
       pay.disabled = true;
-      act('admin_marquer_paye', { p_transporteur: t.transporteur_id, p_mois: 1 }, 'Paiement enregistré pour ' + t.email + '.');
+      act('admin_marquer_paye', { p_transporteur: t.transporteur_id, p_mois: 1, p_montant: du > 0 ? du : null }, 'Paiement enregistré pour ' + t.email + '.');
     };
     acts.appendChild(pay);
     var sus = el('button', '', t.statut === 'suspendu' ? 'Réactiver' : 'Suspendre');
