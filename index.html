@@ -121,7 +121,7 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600}
 .pres .bulle b{display:block;font-size:.8rem;color:var(--doux);font-weight:600;margin-bottom:6px}
 .pres .verdict{margin-top:26px;font-size:1.15rem;font-weight:600}
 .pres .verdict span{background:linear-gradient(transparent 60%,#f6dc9d 60%)}
-.pres .fonds{background:#fff;border-top:1px solid var(--sable);border-bottom:1px solid var(--sable)}
+.pres .fonds{background:var(--fond2,#fff);border-top:1px solid var(--sable);border-bottom:1px solid var(--sable)}
 .pres .grille{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .pres .f{background:var(--creme);border:1px solid var(--sable);border-radius:18px;padding:22px}
 .pres .f .ic{width:46px;height:46px;border-radius:13px;background:var(--vert);color:var(--or);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
@@ -166,6 +166,19 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600}
 .pres .pied .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
 .pres .pied a{color:#fff;text-decoration:none;margin-left:16px}
 @media (max-width:860px){.pres .pied a{margin:0 16px 0 0}}
+/* Présentation : mode sombre */
+@media (prefers-color-scheme:dark){
+  .pres{--creme:#0c1611;--carte:#15241c;--sable:#2c3f33;--encre:#f3efe3;--doux:#b3ad98;--fond2:#101d16}
+  .pres .verdict span{background:linear-gradient(transparent 60%,rgba(227,168,43,.35) 60%)}
+  .pres .wa{background:#16301f;box-shadow:none}
+  .pres .wa .wamsg{background:#1f3a2a;color:#f3efe3}
+  .pres .wa .h{color:#9cc29c}
+  .pres .liste li::before{background:#1d3b2a;color:#5fd394}
+  .pres .etiq{background:rgba(227,168,43,.18)!important;color:#f4c766!important}
+}
+/* Le téléphone d'exemple reste clair, comme l'application */
+.pres .tel{--creme:#fbf7ee;--carte:#fffdf7;--sable:#e9e2cf;--encre:#12261d;--doux:#5f5c4c}
+
 .pres .tl li::after{display:none}
 .pres .tl li::before{bottom:auto}
 .pres .route{margin:12px 2px 4px}
