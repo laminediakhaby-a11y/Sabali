@@ -511,6 +511,24 @@
     });
   })();
 
+  // ----- Acceptation des conditions de location à la création du compte -----
+  (function () {
+    var lb = el('label', 'chk');
+    lb.style.cssText = 'display:flex;gap:8px;align-items:flex-start;font-weight:400;font-size:.92rem;margin:12px 0 0';
+    var cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = 'cgv-ok'; cb.style.marginTop = '3px';
+    var tx = el('span');
+    tx.appendChild(document.createTextNode('J’ai lu et j’accepte les '));
+    var a = el('a', '', 'conditions de location'); a.href = 'conditions-location.pdf'; a.target = '_blank'; a.rel = 'noopener'; a.style.color = 'inherit';
+    tx.appendChild(a); tx.appendChild(document.createTextNode(' de Sabali (pour créer un compte).'));
+    lb.appendChild(cb); lb.appendChild(tx);
+    $('signup').before(lb);
+    var _su = $('signup').onclick;
+    $('signup').onclick = function () {
+      if (!cb.checked) { authMsg('Cochez la case pour accepter les conditions de location avant de créer votre compte.'); return; }
+      return _su.apply(this, arguments);
+    };
+  })();
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
