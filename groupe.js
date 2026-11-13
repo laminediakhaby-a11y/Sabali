@@ -474,6 +474,22 @@
   // ----- Lien direct vers l'espace transporteur (?espace=transporteur) -----
   if (new URLSearchParams(location.search).get('espace') === 'transporteur') tab(2);
 
+  // ----- Présentation sur l'accueil : cachée quand un transporteur est connecté -----
+  (function () {
+    var pres = document.getElementById('presentation');
+    if (!pres) return;
+    var _show = show;
+    show = function () { _show.apply(this, arguments); pres.hidden = !!user; };
+    pres.hidden = !!user;
+    pres.querySelectorAll('[data-espace]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault(); tab(2);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(function () { var m = $('email'); if (m && !user) m.focus({ preventScroll: true }); }, 400);
+      });
+    });
+  })();
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
