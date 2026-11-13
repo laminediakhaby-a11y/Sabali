@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3d2e">
+<title>Sabali pour les transporteurs – le suivi de colis Europe · Afrique</title>
+<meta name="description" content="Sabali aide les transporteurs de colis vers l'Afrique à informer leurs clients : voyages, messages WhatsApp prêts, QR codes, preuves de remise. 3 jours d'essai gratuit.">
+<link rel="icon" type="image/svg+xml" href="sabali-logo.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--vert:#0f3d2e;--vert2:#164d3b;--or:#e3a82b;--or2:#f4c766;--creme:#fbf7ee;--carte:#fffdf7;--sable:#e9e2cf;--encre:#12261d;--doux:#5f5c4c;--ok:#1a7f4b}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--creme);color:var(--encre);font-family:'Outfit',system-ui,sans-serif;line-height:1.55;font-size:17px}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+:focus-visible{outline:3px solid var(--or);outline-offset:3px;border-radius:6px}
+
+/* Barre du haut */
+.nav{background:var(--vert);color:#fff}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:68px}
+.marque{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:800;font-size:1.5rem;letter-spacing:-.03em}
+.marque span{color:var(--or)}
+.marque svg{width:34px;height:34px}
+.nav a.petit{font-weight:600;font-size:.95rem;text-decoration:none;border:1.5px solid rgba(255,255,255,.4);border-radius:10px;padding:8px 14px}
+
+/* Héros */
+.hero{background:var(--vert);color:#fff;padding:36px 0 90px;border-bottom:5px solid var(--or);overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.etiq{display:inline-block;background:rgba(227,168,43,.16);color:var(--or2);font-weight:600;font-size:.85rem;padding:6px 12px;border-radius:99px;letter-spacing:.02em}
+h1{font-size:clamp(2.1rem,4.6vw,3.4rem);line-height:1.05;letter-spacing:-.035em;margin:16px 0 16px;font-weight:800}
+h1 em{font-style:normal;color:var(--or)}
+.hero p.intro{font-size:1.15rem;opacity:.9;margin:0 0 26px;max-width:520px}
+.boutons{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-weight:800;text-decoration:none;border-radius:14px;padding:15px 22px;cursor:pointer;border:0}
+.btn.or{background:var(--or);color:#2b1d00}
+.btn.or:hover{background:var(--or2)}
+.btn.ligne{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.35);font-weight:600}
+.rassure{margin-top:16px;font-size:.92rem;opacity:.8}
+
+/* Téléphone */
+.tel{justify-self:center;width:280px;background:#0b1d16;border-radius:38px;padding:12px;box-shadow:0 30px 60px rgba(0,0,0,.35);transform:rotate(2deg)}
+.ecran{background:var(--creme);border-radius:28px;overflow:hidden;color:var(--encre);font-size:13px}
+.ecran .haut{background:var(--vert);color:#fff;padding:16px 16px 30px;border-bottom:3px solid var(--or)}
+.ecran .haut b{font-size:1.25rem;letter-spacing:-.03em}.ecran .haut b span{color:var(--or)}
+.carte{background:var(--carte);margin:-18px 10px 12px;border-radius:16px;padding:12px;border:1px solid var(--sable)}
+.ent{display:flex;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--sable);margin-bottom:8px}
+.ent i{width:28px;height:28px;border-radius:8px;background:var(--or);display:inline-block}
+.code{font-weight:800;letter-spacing:.04em}
+.badge{float:right;font-weight:600;font-size:11px;padding:3px 8px;border-radius:99px;background:#dff0e5;color:var(--ok)}
+.route{position:relative;height:26px;margin:12px 2px 4px}
+.route .bar,.route .fill{position:absolute;top:16px;height:5px;border-radius:5px;left:0}
+.route .bar{right:0;background:var(--sable)}.route .fill{width:58%;background:var(--ok)}
+.route .bat{position:absolute;left:58%;top:-2px;transform:translateX(-50%);font-size:17px}
+.bouts{display:flex;justify-content:space-between;font-weight:600;font-size:11px}
+.tl{list-style:none;margin:10px 0 0;padding:0}
+.tl li{position:relative;padding:0 0 9px 20px;color:var(--doux);font-size:12px}
+.tl li::before{content:"";position:absolute;left:0;top:3px;width:11px;height:11px;border-radius:50%;border:2px solid var(--sable);background:#fff}
+.tl li.ok{color:var(--encre)}.tl li.ok::before{background:var(--ok);border-color:var(--ok)}
+.tl li.now{font-weight:700}
+.reste{margin-top:6px;font-size:12px;background:#fbecc4;color:#6b4a00;border-radius:8px;padding:6px 8px;font-weight:600}
+
+/* Sections */
+section{padding:72px 0}
+.titre{max-width:640px;margin:0 0 36px}
+.titre small{color:var(--or);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.8rem}
+h2{font-size:clamp(1.7rem,3.2vw,2.4rem);line-height:1.12;letter-spacing:-.03em;margin:8px 0 12px;font-weight:800}
+.titre p{color:var(--doux);margin:0;font-size:1.08rem}
+
+/* Problème */
+.bulles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.bulle{background:var(--carte);border:1px solid var(--sable);border-radius:18px 18px 18px 4px;padding:18px 20px;font-size:1.05rem}
+.bulle b{display:block;font-size:.8rem;color:var(--doux);font-weight:600;margin-bottom:6px}
+.verdict{margin-top:26px;font-size:1.15rem;font-weight:600}
+.verdict span{background:linear-gradient(transparent 60%,#f6dc9d 60%)}
+
+/* Fonctions */
+.fonds{background:#fff;border-top:1px solid var(--sable);border-bottom:1px solid var(--sable)}
+.grille{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.f{background:var(--creme);border:1px solid var(--sable);border-radius:18px;padding:22px}
+.f .ic{width:46px;height:46px;border-radius:13px;background:var(--vert);color:var(--or);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.f .ic svg{width:24px;height:24px}
+.f h3{margin:0 0 6px;font-size:1.15rem;letter-spacing:-.01em}
+.f p{margin:0;color:var(--doux);font-size:.98rem}
+
+/* Étapes */
+.etapes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:e}
+.e{position:relative;padding:24px 22px 22px;border-radius:18px;background:var(--vert);color:#fff}
+.e::before{counter-increment:e;content:counter(e);display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--or);color:#2b1d00;font-weight:800;margin-bottom:14px}
+.e h3{margin:0 0 6px;font-size:1.15rem}
+.e p{margin:0;opacity:.85;font-size:.98rem}
+
+/* Client */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.liste{list-style:none;padding:0;margin:0}
+.liste li{display:flex;gap:12px;margin:0 0 14px;font-size:1.05rem}
+.liste li::before{content:"✓";flex:none;width:26px;height:26px;border-radius:50%;background:#dff0e5;color:var(--ok);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.9rem;margin-top:1px}
+.wa{background:#e7f6dc;border-radius:16px;padding:18px;max-width:380px;justify-self:center;font-size:.97rem;box-shadow:0 10px 30px rgba(15,61,46,.08)}
+.wa .msg{background:#fff;border-radius:12px 12px 12px 3px;padding:12px 14px;white-space:pre-line}
+.wa .h{font-size:.8rem;color:#5c7a5c;font-weight:600;margin-bottom:8px}
+.wa .t{display:block;text-align:right;font-size:.75rem;color:#8aa08a;margin-top:6px}
+
+/* Tarif */
+.tarif{background:var(--vert);color:#fff;border-radius:26px;padding:44px;display:grid;grid-template-columns:1.2fr .8fr;gap:30px;align-items:center;border-bottom:5px solid var(--or)}
+.tarif h2{color:#fff}
+.tarif p{opacity:.88;margin:0 0 10px}
+.points{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.points li{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:14px 16px;font-weight:600}
+.points li span{display:block;font-weight:400;opacity:.8;font-size:.92rem}
+
+/* FAQ */
+details{background:var(--carte);border:1px solid var(--sable);border-radius:14px;padding:16px 20px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:600;font-size:1.05rem;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--or);font-weight:800;font-size:1.3rem;line-height:1}
+details[open] summary::after{content:"–"}
+details p{margin:10px 0 0;color:var(--doux)}
+
+/* Fin */
+.fin{text-align:center}
+.fin p{color:var(--doux);margin:0 auto 24px;max-width:520px}
+.fin .btn.ligne{color:var(--encre);border-color:var(--sable)}
+footer{background:var(--vert);color:rgba(255,255,255,.8);padding:28px 0;font-size:.92rem}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+footer a{color:#fff;text-decoration:none;margin-left:16px}
+
+@media (max-width:860px){
+  .hero .wrap,.duo,.tarif{grid-template-columns:1fr}
+  .grille,.etapes,.bulles{grid-template-columns:1fr}
+  .tel{transform:none;width:260px}
+  section{padding:56px 0}
+  .tarif{padding:30px 22px}
+  footer a{margin:0 16px 0 0}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="nav"><div class="wrap">
+  <a class="marque" href="/" aria-label="Sabali, accueil">
+    <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M720 250 C 330 170, 250 470, 512 512 C 790 556, 720 870, 300 780" fill="none" stroke="#e3a82b" stroke-width="130" stroke-linecap="round"/><circle cx="720" cy="250" r="44" fill="#fff"/><path d="M300 640 c-62 0 -106 46 -106 104 c0 78 106 176 106 176 s106 -98 106 -176 c0 -58 -44 -104 -106 -104z" fill="#fff"/><circle cx="300" cy="744" r="38" fill="#0f3d2e"/></svg>
+    <b style="font-weight:800">Sa<span>bali</span></b>
+  </a>
+  <a class="petit" href="/?espace=transporteur">Se connecter</a>
+</div></header>
+
+<div class="hero"><div class="wrap">
+  <div>
+    <span class="etiq">Pour les transporteurs de colis Europe · Afrique</span>
+    <h1>Vos clients savent où est leur colis. <em>Vous gagnez du temps.</em></h1>
+    <p class="intro">Sabali suit chaque colis du dépôt en Europe jusqu'à la remise en Afrique. Vos clients suivent leur envoi tout seuls, et vous les prévenez sur WhatsApp en un clic.</p>
+    <div class="boutons">
+      <a class="btn or" href="/?espace=transporteur">Essayer gratuitement 3 jours</a>
+      <a class="btn ligne" href="#fonctions">Voir ce que fait Sabali</a>
+    </div>
+    <p class="rassure">Sans carte bancaire · Sans engagement · Rien à installer</p>
+  </div>
+
+  <div class="tel" aria-label="Exemple de suivi d'un colis sur Sabali" role="img">
+    <div class="ecran">
+      <div class="haut"><b>Sa<span>bali</span></b></div>
+      <div class="carte">
+        <div class="ent"><i></i><div><b>Transports Diallo</b><br><span style="color:var(--doux);font-size:11px">📞 +33 6 12 34 56 78</span></div></div>
+        <span class="badge">En mer</span>
+        <div class="code">SB-K7M2QX</div>
+        <div style="color:var(--doux);font-size:11px">Voyage : Conteneur décembre</div>
+        <div class="route"><div class="bar"></div><div class="fill"></div><div class="bat">🚢</div></div>
+        <div class="bouts"><span>Paris</span><span>Bamako</span></div>
+        <ul class="tl">
+          <li class="ok">Pris en charge · 2 déc.</li>
+          <li class="ok">Chargé dans le conteneur · 4 déc.</li>
+          <li class="ok">Bateau parti · 6 déc.</li>
+          <li class="ok now">En mer</li>
+          <li>Arrivé au port</li>
+          <li>Dédouané</li>
+          <li>Remis</li>
+        </ul>
+        <div class="reste">Reste à payer : 40 €</div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<section><div class="wrap">
+  <div class="titre"><small>Le problème</small><h2>Un conteneur, cinquante clients, cent appels.</h2><p>Pendant les semaines de trajet, les mêmes questions reviennent toute la journée.</p></div>
+  <div class="bulles">
+    <div class="bulle"><b>Aminata, 9 h 12</b>Salam, mon colis il est où ? Le bateau est parti ?</div>
+    <div class="bulle"><b>Moussa, 11 h 40</b>Ma mère attend à Dakar, c'est pour quand l'arrivée ?</div>
+    <div class="bulle"><b>Fanta, 18 h 05</b>J'ai payé 60 €, il me reste combien à donner ?</div>
+  </div>
+  <p class="verdict">Avec Sabali, <span>chaque client a la réponse sur son téléphone</span>, sans vous appeler.</p>
+</div></section>
+
+<section class="fonds" id="fonctions"><div class="wrap">
+  <div class="titre"><small>Ce que fait Sabali</small><h2>Tout ce qu'il faut pour un conteneur bien suivi</h2><p>Pensé pour le groupage par bateau vers l'Afrique de l'Ouest et du Centre.</p></div>
+  <div class="grille">
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h18l-2 4H5z"/><rect x="6" y="9" width="5" height="5"/><rect x="13" y="9" width="5" height="5"/><path d="M2 21c2 0 2-1 4-1s2 1 4 1 2-1 4-1 2 1 4 1"/></svg></div><h3>Les voyages</h3><p>Regroupez vos colis par conteneur. Un clic sur « Étape suivante » met à jour tous les colis du voyage d'un coup.</p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-13.5 7.8L3 21l1.2-4.4A9 9 0 1 1 21 12z"/><path d="M8 10h8M8 14h5"/></svg></div><h3>WhatsApp en un clic</h3><p>Messages déjà écrits pour chaque étape, avec le code de suivi, l'adresse de retrait et le reste à payer. Prévenez tout un voyage en une minute.</p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg></div><h3>Étiquettes QR code</h3><p>Imprimez une étiquette par colis. Vous la scannez pour agir tout de suite, votre client la scanne pour suivre son envoi.</p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg></div><h3>Preuve de remise</h3><p>Nom de la personne qui récupère et photo du colis. En cas de litige, vous avez la preuve.</p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h4"/></svg></div><h3>Paiements suivis</h3><p>Prix, déjà payé, reste à payer : pour chaque colis, vous et votre client voyez le même montant.</p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg></div><h3>À votre nom</h3><p>Votre logo, votre adresse et votre numéro s'affichent sur la page de suivi de vos clients.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="titre"><small>Comment ça marche</small><h2>Prêt en dix minutes</h2></div>
+  <div class="etapes">
+    <div class="e"><h3>Créez votre compte</h3><p>Sur sabali.app, avec votre e-mail et le nom de votre entreprise. Ajoutez votre logo et votre adresse de retrait.</p></div>
+    <div class="e"><h3>Créez un voyage</h3><p>Un voyage par conteneur. Enregistrez vos colis dedans : chacun reçoit son code de suivi et son QR code.</p></div>
+    <div class="e"><h3>Faites avancer, prévenez</h3><p>À chaque étape du bateau, un clic met tout à jour et vous envoyez le message WhatsApp à vos clients.</p></div>
+  </div>
+</div></section>
+
+<section class="fonds"><div class="wrap duo">
+  <div>
+    <div class="titre" style="margin-bottom:24px"><small>Côté client</small><h2>Simple pour vos clients, même sans compte</h2></div>
+    <ul class="liste">
+      <li>Ils tapent leur code ou scannent l'étiquette : c'est tout.</li>
+      <li>Ils voient le trajet du colis, étape par étape, avec les dates.</li>
+      <li>Ils savent ce qu'il reste à payer et où récupérer le colis.</li>
+      <li>La page existe en français et en anglais.</li>
+    </ul>
+  </div>
+  <div class="wa" aria-label="Exemple de message WhatsApp envoyé par Sabali">
+    <div class="h">WhatsApp · Transports Diallo</div>
+    <div class="msg">Bonjour Aminata, bonne nouvelle, votre colis est arrivé ! Vous pouvez venir le récupérer à l'adresse suivante : Hamdallaye ACI, Bamako.
+Reste à payer : 40 €
+Code de suivi : SB-K7M2QX
+— Transports Diallo<span class="t">10:24 ✓✓</span></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="tarif">
+    <div>
+      <small style="color:var(--or2);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.8rem">Tarif</small>
+      <h2>Vous payez seulement les colis qui partent</h2>
+      <p>Pas d'abonnement : un petit montant par colis expédié. Un mois sans départ ne vous coûte rien.</p>
+      <p>Écrivez-nous pour connaître le tarif : <a href="mailto:contact@sabali.app" style="color:var(--or2);font-weight:600">contact@sabali.app</a></p>
+    </div>
+    <ul class="points">
+      <li>3 jours d'essai gratuit<span>Toutes les fonctions, sans carte bancaire</span></li>
+      <li>Sans engagement<span>Vous arrêtez quand vous voulez</span></li>
+      <li>Vos données protégées<span>Vous seul voyez vos colis</span></li>
+    </ul>
+  </div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap" style="max-width:780px">
+  <div class="titre"><small>Questions fréquentes</small><h2>Vous vous demandez peut-être…</h2></div>
+  <details><summary>Faut-il installer une application ?</summary><p>Non. Sabali s'ouvre dans le navigateur du téléphone ou de l'ordinateur, sur sabali.app. Vous pouvez l'ajouter à l'écran d'accueil de votre téléphone comme une application.</p></details>
+  <details><summary>Mes clients doivent-ils créer un compte ?</summary><p>Non. Ils suivent leur colis avec le code de suivi que vous leur donnez, ou en scannant l'étiquette QR.</p></details>
+  <details><summary>Ça marche pour quels pays ?</summary><p>Pour tous les envois d'Europe vers l'Afrique : Mali, Sénégal, Côte d'Ivoire, Guinée, Mauritanie, Burkina Faso et les autres. Vous indiquez le port d'arrivée et la ville de destination.</p></details>
+  <details><summary>Les messages WhatsApp partent-ils tout seuls ?</summary><p>Non, et c'est voulu. Sabali prépare le message, WhatsApp s'ouvre, et c'est vous qui validez l'envoi. Vos clients reçoivent le message de votre numéro habituel.</p></details>
+  <details><summary>Et si je n'ai pas internet un moment ?</summary><p>Sabali s'ouvre quand même et vous prévient. Vos colis s'affichent dès que le réseau revient.</p></details>
+  <details><summary>Qui voit mes colis et mes clients ?</summary><p>Vous seul. Chaque transporteur ne voit que ses propres colis, et un client ne voit que le colis dont il a le code.</p></details>
+</div></section>
+
+<section class="fin" style="padding-top:20px"><div class="wrap">
+  <h2>Votre prochain conteneur, suivi avec Sabali</h2>
+  <p>Créez votre compte en deux minutes et testez Sabali gratuitement pendant 3 jours.</p>
+  <div class="boutons" style="justify-content:center">
+    <a class="btn or" href="/?espace=transporteur">Essayer gratuitement</a>
+    <a class="btn ligne" href="mailto:contact@sabali.app">Nous écrire</a>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span>© 2026 Sabali · sabali.app</span>
+  <span><a href="mentions-legales.html">Mentions légales</a><a href="confidentialite.html">Confidentialité</a><a href="mailto:contact@sabali.app">Contact</a></span>
+</div></footer>
+
+</body>
+</html>

@@ -471,6 +471,9 @@
     q.addEventListener('input', nettoyer);
   })();
 
+  // ----- Lien direct vers l'espace transporteur (?espace=transporteur) -----
+  if (new URLSearchParams(location.search).get('espace') === 'transporteur') tab(2);
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
