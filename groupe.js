@@ -467,8 +467,9 @@
     q.setAttribute('data-lpignore', 'true');
     q.setAttribute('data-form-type', 'other');
     function nettoyer() { if (q.value.indexOf('@') > -1) q.value = ''; }
-    [0, 300, 1000, 2500].forEach(function (t) { setTimeout(nettoyer, t); });
-    q.addEventListener('input', nettoyer);
+    var n = 0, minuteur = setInterval(function () { nettoyer(); if (++n > 30) clearInterval(minuteur); }, 500);
+    ['input', 'change', 'focus', 'blur', 'animationstart'].forEach(function (ev) { q.addEventListener(ev, nettoyer); });
+    window.addEventListener('pageshow', nettoyer);
   })();
 
   // ----- Lien direct vers l'espace transporteur (?espace=transporteur) -----
@@ -487,6 +488,26 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(function () { var m = $('email'); if (m && !user) m.focus({ preventScroll: true }); }, 400);
       });
+    });
+  })();
+
+  // ----- Barre du haut : FR/EN à côté de « Se connecter », lien vers l'espace transporteur -----
+  (function () {
+    var droite = document.querySelector('.hero .droite'), lien = document.querySelector('[data-espace-haut]');
+    if (!droite || !lien) return;
+    var fr = [].slice.call(document.querySelectorAll('.hero button')).filter(function (b) { return b.textContent === 'FR'; })[0];
+    if (fr) { var c = fr.parentNode; c.style.cssText = 'display:flex;gap:6px'; droite.insertBefore(c, lien); }
+    function maj() {
+      var en = document.documentElement.lang === 'en';
+      lien.textContent = user ? (en ? 'My area' : 'Mon espace') : (en ? 'Log in' : 'Se connecter');
+    }
+    new MutationObserver(maj).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+    var _show2 = show;
+    show = function () { _show2.apply(this, arguments); maj(); };
+    maj();
+    lien.addEventListener('click', function (e) {
+      e.preventDefault(); tab(2);
+      setTimeout(function () { var m = $('email'); if (m && !user) m.focus(); }, 200);
     });
   })();
 

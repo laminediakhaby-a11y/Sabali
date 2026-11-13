@@ -18,6 +18,18 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Outfit',system-
 .hero{background:var(--brand);color:#fff;padding:28px 18px 64px;border-bottom:4px solid var(--gold)}
 .hero div{max-width:560px;margin:0 auto}
 .brand{font-size:2.6rem;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1}.brand span{color:var(--gold)}
+.barre{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hero .barre div,.hero .droite{max-width:none;margin:0}
+.brand{font-size:1.9rem}
+.marque{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+.marque b{font-weight:800}
+.marque svg{width:38px;height:38px;flex:none}
+.droite{display:flex;align-items:center;gap:8px}
+.droite button{margin-left:0!important}
+.connexion{font-weight:600;font-size:.95rem;color:#fff;text-decoration:none;border:1.5px solid rgba(255,255,255,.4);border-radius:10px;padding:8px 14px;white-space:nowrap}
+.connexion:hover{background:rgba(255,255,255,.08)}
+.hero .tag{margin-top:14px}
+@media (max-width:420px){.brand{font-size:1.55rem}.marque svg{width:30px;height:30px}.marque{gap:7px}.connexion{padding:7px 10px;font-size:.88rem}.droite{gap:6px}.droite button{padding:4px 8px!important}}
 .tag{margin:8px 0 0;opacity:.9}
 main{max-width:560px;margin:-44px auto 0;padding:0 16px 48px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(60,45,10,.10)}
@@ -187,7 +199,10 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600}
 </head>
 <body>
 <header class="hero"><div>
-  <h1 class="brand">Sa<span>bali</span></h1>
+  <div class="barre">
+    <h1 class="brand"><a class="marque" href="/" aria-label="Sabali, accueil"><svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M720 250 C 330 170, 250 470, 512 512 C 790 556, 720 870, 300 780" fill="none" stroke="#e3a82b" stroke-width="130" stroke-linecap="round"/><circle cx="720" cy="250" r="44" fill="#fff"/><path d="M300 640 c-62 0 -106 46 -106 104 c0 78 106 176 106 176 s106 -98 106 -176 c0 -58 -44 -104 -106 -104z" fill="#fff"/><circle cx="300" cy="744" r="38" fill="#0f3d2e"/></svg><b>Sa<span>bali</span></b></a></h1>
+    <div class="droite"><a class="connexion" href="/?espace=transporteur" data-espace-haut>Se connecter</a></div>
+  </div>
   <p class="tag">Suivez vos colis, de l’Europe jusqu’à la maison.</p>
 </div></header>
 
