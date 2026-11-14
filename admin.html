@@ -220,7 +220,7 @@ function draw(rows) {
     };
     acts.appendChild(sus);
     var fb = el('button', '', '🧾 Facture ' + nomMois());
-    fb.onclick = function () { facture(t); };
+    fb.onclick = function () { ouvrirFacture(t); };
     acts.appendChild(fb);
     card.appendChild(acts);
 
@@ -267,7 +267,7 @@ var EMETTEUR = {
   email: 'contact@sabali.app', site: 'sabali.app'
 };
 function esc(x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-async function facture(t) {
+async function ouvrirFacture(t) {
   // Facture affichée dans la page (pas de fenêtre pop-up) : marche aussi sur iPhone
   var old = document.getElementById('fact-zone'); if (old) old.remove();
   var z = document.createElement('div'); z.id = 'fact-zone';
