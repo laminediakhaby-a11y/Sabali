@@ -200,6 +200,9 @@ function draw(rows) {
         t.statut === 'suspendu' ? 'Transporteur réactivé.' : 'Transporteur suspendu.');
     };
     acts.appendChild(sus);
+    var fb = el('button', '', '🧾 Facture ' + nomMois());
+    fb.onclick = function () { facture(t); };
+    acts.appendChild(fb);
     card.appendChild(acts);
 
     var det = document.createElement('details');
@@ -235,6 +238,55 @@ function draw(rows) {
     card.appendChild(det);
     L.appendChild(card);
   });
+}
+
+// ----- Facture imprimable (numéro continu, mentions obligatoires micro-entreprise) -----
+var EMETTEUR = {
+  nom: 'Lamine Diakhaby EI', commercial: 'Sabali',
+  adresse: '13 allée Jean de La Fontaine, 92000 Nanterre',
+  siret: '991 343 203 00014', rcs: 'RCS Nanterre 991 343 203',
+  email: 'contact@sabali.app', site: 'sabali.app'
+};
+function esc(x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+async function facture(t) {
+  var w = window.open('', '_blank');
+  if (!w) { note('Autorisez les fenêtres pop-up pour sabali.app, puis réessayez.'); return; }
+  w.document.write('<p style="font-family:sans-serif;padding:20px">Préparation de la facture…</p>');
+  var o = await db.rpc('admin_creer_facture', { p_transporteur: t.transporteur_id, p_mois: $('mois').value, p_prix: PRIX_COLIS });
+  if (o.error) { w.close(); note('Facture impossible : ' + o.error.message); return; }
+  var f = Array.isArray(o.data) ? o.data[0] : o.data;
+  var d = new Date(f.cree_le), ech = new Date(d.getTime() + 15 * 864e5);
+  var dfr = function (x) { return x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
+  var e2 = function (n) { return Number(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; };
+  var periode = new Date(f.mois + 'T00:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  var lignes = '<tr><td>Suivi de colis Sabali — colis partis en ' + esc(periode) + '</td><td class="n">' + f.nb_colis + '</td><td class="n">' + e2(f.prix_unitaire) + '</td><td class="n">' + e2(f.nb_colis * f.prix_unitaire) + '</td></tr>';
+  if (Number(f.loyer) > 0) lignes += '<tr><td>Loyer fixe — ' + esc(periode) + '</td><td class="n">1</td><td class="n">' + e2(f.loyer) + '</td><td class="n">' + e2(f.loyer) + '</td></tr>';
+  var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Facture ' + esc(f.numero) + '</title><style>' +
+    '@page{size:A4;margin:16mm}body{font-family:Outfit,Arial,sans-serif;color:#12261d;font-size:11pt;line-height:1.45;max-width:800px;margin:0 auto;padding:20px}' +
+    '.top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:4px solid #e3a82b;padding-bottom:14px}' +
+    '.brand{font-size:30px;font-weight:800;color:#0f3d2e;letter-spacing:-.03em}.brand span{color:#e3a82b}' +
+    'h1{margin:0;font-size:24px;color:#0f3d2e;text-align:right}.muted{color:#5f5c4c;font-size:10pt}' +
+    '.cols{display:flex;gap:30px;margin:22px 0}.cols div{flex:1}.cols b{color:#0f3d2e}' +
+    '[contenteditable]{background:#fbecc4;border-radius:4px;padding:1px 4px;outline:none}' +
+    'table{width:100%;border-collapse:collapse;margin-top:10px}th{background:#0f3d2e;color:#fff;text-align:left;padding:8px;font-size:10pt}' +
+    'td{padding:9px 8px;border-bottom:1px solid #e9e2cf}.n{text-align:right;white-space:nowrap}' +
+    '.tot{margin-left:auto;width:290px;margin-top:12px}.tot div{display:flex;justify-content:space-between;padding:5px 0}' +
+    '.tot .big{border-top:2px solid #0f3d2e;font-weight:800;font-size:13pt;color:#0f3d2e}' +
+    '.mentions{margin-top:30px;font-size:9pt;color:#5f5c4c;border-top:1px solid #e9e2cf;padding-top:10px}' +
+    '.bar{margin:0 0 16px;display:flex;gap:10px}.bar button{font:inherit;font-weight:700;padding:10px 16px;border-radius:10px;border:0;background:#e3a82b;cursor:pointer}' +
+    '@media print{.bar{display:none}[contenteditable]{background:none;padding:0}body{padding:0}}' +
+    '</style></head><body>' +
+    '<div class="bar"><button onclick="window.print()">Imprimer / Enregistrer en PDF</button><span class="muted">Les zones jaunes se modifient : cliquez dessus pour compléter le nom et l’adresse du client.</span></div>' +
+    '<div class="top"><div><div class="brand">Sa<span>bali</span></div><div class="muted">' + esc(EMETTEUR.nom) + ' — nom commercial ' + esc(EMETTEUR.commercial) + '<br>' + esc(EMETTEUR.adresse) + '<br>SIRET ' + esc(EMETTEUR.siret) + ' · ' + esc(EMETTEUR.rcs) + '<br>' + esc(EMETTEUR.email) + ' · ' + esc(EMETTEUR.site) + '</div></div>' +
+    '<div><h1>FACTURE</h1><div class="muted" style="text-align:right">N° <b>' + esc(f.numero) + '</b><br>Date : ' + dfr(d) + '<br>Échéance : ' + dfr(ech) + '</div></div></div>' +
+    '<div class="cols"><div><b>Facturé à</b><br><span contenteditable>' + esc(t.nom || 'Nom de l’entreprise') + '</span><br><span contenteditable>Adresse du client</span><br>' + esc(t.email) + '</div>' +
+    '<div><b>Période</b><br>' + esc(periode) + '<br><b>Prestation</b><br>Location du logiciel de suivi de colis Sabali</div></div>' +
+    '<table><tr><th>Désignation</th><th class="n">Quantité</th><th class="n">Prix unitaire</th><th class="n">Total</th></tr>' + lignes + '</table>' +
+    '<div class="tot"><div><span>Total HT</span><span>' + e2(f.montant) + '</span></div><div><span>TVA</span><span>0,00 €</span></div><div class="big"><span>Net à payer</span><span>' + e2(f.montant) + '</span></div></div>' +
+    '<p style="margin-top:18px"><b>Paiement</b> par virement sous 15 jours, avant le ' + dfr(ech) + '.<br>IBAN : <span contenteditable>FR76 …</span></p>' +
+    '<div class="mentions">TVA non applicable, article 293 B du CGI.<br>En cas de retard de paiement : pénalités au taux de 3 fois le taux d’intérêt légal et indemnité forfaitaire pour frais de recouvrement de 40 € (article L441-10 du Code de commerce). Pas d’escompte pour paiement anticipé.<br>Conditions de location : sabali.app/conditions-location.pdf</div>' +
+    '</body></html>';
+  w.document.open(); w.document.write(html); w.document.close();
 }
 
 $('aadd').onclick = async function () {
