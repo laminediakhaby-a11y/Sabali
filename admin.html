@@ -46,6 +46,25 @@ h2{font-size:1.05rem;margin:22px 0 10px}
 .whoami{display:flex;justify-content:space-between;align-items:center;gap:8px}
 details{margin-top:12px}summary{cursor:pointer;font-weight:600}
 [hidden]{display:none!important}
+
+#fact-zone{position:fixed;inset:0;z-index:50;background:#fff;color:#12261d;overflow:auto;padding:16px;font-size:15px;line-height:1.45}
+#fact-zone .fbar{display:flex;gap:8px;margin-bottom:14px;position:sticky;top:0;background:#fff;padding:6px 0}
+#fact-zone .fbar button{font:inherit;font-weight:700;padding:10px 14px;border-radius:10px;border:0;background:#e3a82b;color:#2b1d00;cursor:pointer}
+#fact-zone .fbar .alt2{background:#fff;border:2px solid #e9e2cf;color:#12261d}
+#f-doc{max-width:780px;margin:0 auto}
+#f-doc .aide{background:#fbecc4;border-radius:8px;padding:8px 10px;font-size:13px}
+#f-doc .top{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;border-bottom:4px solid #e3a82b;padding-bottom:12px}
+#f-doc .fbrand{font-size:28px;font-weight:800;color:#0f3d2e;letter-spacing:-.03em}#f-doc .fbrand span{color:#e3a82b}
+#f-doc .ftitre{font-size:22px;font-weight:800;color:#0f3d2e;text-align:right}
+#f-doc .muted{color:#5f5c4c;font-size:13px}
+#f-doc .cols{display:flex;gap:24px;margin:18px 0;flex-wrap:wrap}#f-doc .cols>div{flex:1;min-width:200px}#f-doc .cols b{color:#0f3d2e}
+#f-doc [contenteditable]{background:#fbecc4;border-radius:4px;padding:1px 4px;outline:none}
+#f-doc table{width:100%;border-collapse:collapse;font-size:14px}#f-doc th{background:#0f3d2e;color:#fff;text-align:left;padding:7px}
+#f-doc td{padding:8px 7px;border-bottom:1px solid #e9e2cf}#f-doc .n{text-align:right;white-space:nowrap}
+#f-doc .tot{margin-left:auto;max-width:280px;margin-top:10px}#f-doc .tot div{display:flex;justify-content:space-between;padding:4px 0}
+#f-doc .tot .big{border-top:2px solid #0f3d2e;font-weight:800;font-size:17px;color:#0f3d2e}
+#f-doc .mentions{margin-top:24px;font-size:12px;color:#5f5c4c;border-top:1px solid #e9e2cf;padding-top:8px}
+@media print{body.fact-ouverte>*:not(#fact-zone){display:none!important}#fact-zone{position:static;padding:0}#fact-zone .fbar,#f-doc .aide{display:none}#f-doc [contenteditable]{background:none;padding:0}}
 </style>
 </head>
 <body>
@@ -249,11 +268,16 @@ var EMETTEUR = {
 };
 function esc(x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 async function facture(t) {
-  var w = window.open('', '_blank');
-  if (!w) { note('Autorisez les fenêtres pop-up pour sabali.app, puis réessayez.'); return; }
-  w.document.write('<p style="font-family:sans-serif;padding:20px">Préparation de la facture…</p>');
+  // Facture affichée dans la page (pas de fenêtre pop-up) : marche aussi sur iPhone
+  var old = document.getElementById('fact-zone'); if (old) old.remove();
+  var z = document.createElement('div'); z.id = 'fact-zone';
+  z.innerHTML = '<div class="fbar"><button id="f-print">Imprimer / Enregistrer en PDF</button><button id="f-close" class="alt2">Fermer</button></div><div id="f-doc"><p>Préparation de la facture…</p></div>';
+  document.body.appendChild(z); document.body.classList.add('fact-ouverte'); window.scrollTo(0, 0);
+  z.querySelector('#f-close').onclick = function () { z.remove(); document.body.classList.remove('fact-ouverte'); };
+  z.querySelector('#f-print').onclick = function () { window.print(); };
+  var doc = z.querySelector('#f-doc');
   var o = await db.rpc('admin_creer_facture', { p_transporteur: t.transporteur_id, p_mois: $('mois').value, p_prix: PRIX_COLIS });
-  if (o.error) { w.close(); note('Facture impossible : ' + o.error.message); return; }
+  if (o.error) { doc.innerHTML = '<p style="color:#b5452a;font-weight:700">Facture impossible : ' + esc(o.error.message) + '</p><p>Vérifiez que le fichier SQL des factures a bien été lancé dans Supabase.</p>'; return; }
   var f = Array.isArray(o.data) ? o.data[0] : o.data;
   var d = new Date(f.cree_le), ech = new Date(d.getTime() + 15 * 864e5);
   var dfr = function (x) { return x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
@@ -261,32 +285,16 @@ async function facture(t) {
   var periode = new Date(f.mois + 'T00:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   var lignes = '<tr><td>Suivi de colis Sabali — colis partis en ' + esc(periode) + '</td><td class="n">' + f.nb_colis + '</td><td class="n">' + e2(f.prix_unitaire) + '</td><td class="n">' + e2(f.nb_colis * f.prix_unitaire) + '</td></tr>';
   if (Number(f.loyer) > 0) lignes += '<tr><td>Loyer fixe — ' + esc(periode) + '</td><td class="n">1</td><td class="n">' + e2(f.loyer) + '</td><td class="n">' + e2(f.loyer) + '</td></tr>';
-  var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Facture ' + esc(f.numero) + '</title><style>' +
-    '@page{size:A4;margin:16mm}body{font-family:Outfit,Arial,sans-serif;color:#12261d;font-size:11pt;line-height:1.45;max-width:800px;margin:0 auto;padding:20px}' +
-    '.top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:4px solid #e3a82b;padding-bottom:14px}' +
-    '.brand{font-size:30px;font-weight:800;color:#0f3d2e;letter-spacing:-.03em}.brand span{color:#e3a82b}' +
-    'h1{margin:0;font-size:24px;color:#0f3d2e;text-align:right}.muted{color:#5f5c4c;font-size:10pt}' +
-    '.cols{display:flex;gap:30px;margin:22px 0}.cols div{flex:1}.cols b{color:#0f3d2e}' +
-    '[contenteditable]{background:#fbecc4;border-radius:4px;padding:1px 4px;outline:none}' +
-    'table{width:100%;border-collapse:collapse;margin-top:10px}th{background:#0f3d2e;color:#fff;text-align:left;padding:8px;font-size:10pt}' +
-    'td{padding:9px 8px;border-bottom:1px solid #e9e2cf}.n{text-align:right;white-space:nowrap}' +
-    '.tot{margin-left:auto;width:290px;margin-top:12px}.tot div{display:flex;justify-content:space-between;padding:5px 0}' +
-    '.tot .big{border-top:2px solid #0f3d2e;font-weight:800;font-size:13pt;color:#0f3d2e}' +
-    '.mentions{margin-top:30px;font-size:9pt;color:#5f5c4c;border-top:1px solid #e9e2cf;padding-top:10px}' +
-    '.bar{margin:0 0 16px;display:flex;gap:10px}.bar button{font:inherit;font-weight:700;padding:10px 16px;border-radius:10px;border:0;background:#e3a82b;cursor:pointer}' +
-    '@media print{.bar{display:none}[contenteditable]{background:none;padding:0}body{padding:0}}' +
-    '</style></head><body>' +
-    '<div class="bar"><button onclick="window.print()">Imprimer / Enregistrer en PDF</button><span class="muted">Les zones jaunes se modifient : cliquez dessus pour compléter le nom et l’adresse du client.</span></div>' +
-    '<div class="top"><div><div class="brand">Sa<span>bali</span></div><div class="muted">' + esc(EMETTEUR.nom) + ' — nom commercial ' + esc(EMETTEUR.commercial) + '<br>' + esc(EMETTEUR.adresse) + '<br>SIRET ' + esc(EMETTEUR.siret) + ' · ' + esc(EMETTEUR.rcs) + '<br>' + esc(EMETTEUR.email) + ' · ' + esc(EMETTEUR.site) + '</div></div>' +
-    '<div><h1>FACTURE</h1><div class="muted" style="text-align:right">N° <b>' + esc(f.numero) + '</b><br>Date : ' + dfr(d) + '<br>Échéance : ' + dfr(ech) + '</div></div></div>' +
+  doc.innerHTML =
+    '<p class="aide">Les zones jaunes se modifient : touchez-les pour compléter le nom et l’adresse du client, et votre IBAN.</p>' +
+    '<div class="top"><div><div class="fbrand">Sa<span>bali</span></div><div class="muted">' + esc(EMETTEUR.nom) + ' — nom commercial ' + esc(EMETTEUR.commercial) + '<br>' + esc(EMETTEUR.adresse) + '<br>SIRET ' + esc(EMETTEUR.siret) + ' · ' + esc(EMETTEUR.rcs) + '<br>' + esc(EMETTEUR.email) + ' · ' + esc(EMETTEUR.site) + '</div></div>' +
+    '<div><div class="ftitre">FACTURE</div><div class="muted" style="text-align:right">N° <b>' + esc(f.numero) + '</b><br>Date : ' + dfr(d) + '<br>Échéance : ' + dfr(ech) + '</div></div></div>' +
     '<div class="cols"><div><b>Facturé à</b><br><span contenteditable>' + esc(t.nom || 'Nom de l’entreprise') + '</span><br><span contenteditable>Adresse du client</span><br>' + esc(t.email) + '</div>' +
     '<div><b>Période</b><br>' + esc(periode) + '<br><b>Prestation</b><br>Location du logiciel de suivi de colis Sabali</div></div>' +
-    '<table><tr><th>Désignation</th><th class="n">Quantité</th><th class="n">Prix unitaire</th><th class="n">Total</th></tr>' + lignes + '</table>' +
+    '<table><tr><th>Désignation</th><th class="n">Qté</th><th class="n">Prix unitaire</th><th class="n">Total</th></tr>' + lignes + '</table>' +
     '<div class="tot"><div><span>Total HT</span><span>' + e2(f.montant) + '</span></div><div><span>TVA</span><span>0,00 €</span></div><div class="big"><span>Net à payer</span><span>' + e2(f.montant) + '</span></div></div>' +
     '<p style="margin-top:18px"><b>Paiement</b> par virement sous 15 jours, avant le ' + dfr(ech) + '.<br>IBAN : <span contenteditable>FR76 …</span></p>' +
-    '<div class="mentions">TVA non applicable, article 293 B du CGI.<br>En cas de retard de paiement : pénalités au taux de 3 fois le taux d’intérêt légal et indemnité forfaitaire pour frais de recouvrement de 40 € (article L441-10 du Code de commerce). Pas d’escompte pour paiement anticipé.<br>Conditions de location : sabali.app/conditions-location.pdf</div>' +
-    '</body></html>';
-  w.document.open(); w.document.write(html); w.document.close();
+    '<div class="mentions">TVA non applicable, article 293 B du CGI.<br>En cas de retard de paiement : pénalités au taux de 3 fois le taux d’intérêt légal et indemnité forfaitaire pour frais de recouvrement de 40 € (article L441-10 du Code de commerce). Pas d’escompte pour paiement anticipé.<br>Conditions de location : sabali.app/conditions-location.pdf</div>';
 }
 
 $('aadd').onclick = async function () {
