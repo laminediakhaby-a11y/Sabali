@@ -4,7 +4,19 @@
   var envoyes = {};   // clé "colisId|etape" -> true
   var tour = 0;       // évite les doublons si les voyages sont redessinés pendant le chargement
 
-  function cle(c) { return c.id + '|' + c.etape; }
+  // Trajet par la route après le port (Mali, Burkina, Niger…) : 0 = pas parti, 1 = en route, 2 = arrivé
+  function etatRoute(c) {
+    var e = 0;
+    (c.evenements || []).forEach(function (x) {
+      if (x.type !== 'passage' || !x.lieu) return;
+      if (x.lieu.indexOf('Arrivé à ') === 0) e = 2;
+      else if (x.lieu.indexOf('En route vers ') === 0 && e < 1) e = 1;
+    });
+    return e;
+  }
+  window.etatRoute = etatRoute;
+  function etapeMsg(c) { return (c.voyage_id && c.route && c.etape === 5) ? 50 + etatRoute(c) : c.etape; }
+  function cle(c) { return c.id + '|' + etapeMsg(c); }
   function aPrevenir(v) {
     return colis.filter(function (c) { return c.voyage_id === v.id && c.etape < 6; });
   }
@@ -25,7 +37,7 @@
   async function marquer(c) {
     envoyes[cle(c)] = true;
     var o = await db.from('messages_envoyes').upsert(
-      { colis_id: c.id, etape: c.etape },
+      { colis_id: c.id, etape: etapeMsg(c) },
       { onConflict: 'colis_id,etape', ignoreDuplicates: true }
     );
     return o.error;
@@ -135,6 +147,38 @@
       lb.style.cssText = PETIT + ';margin:12px 0 0 8px';
       lb.onclick = function () { ouvrirListe(v); };
       card.appendChild(lb);
+      var rc = colis.filter(function (c) { return c.voyage_id === v.id && c.route && c.etape === 5; });
+      if (v.etape === 5 && rc.length) {
+        var e0 = rc.filter(function (c) { return etatRoute(c) === 0; });
+        var e1 = rc.filter(function (c) { return etatRoute(c) === 1; });
+        var villes = [];
+        rc.forEach(function (c) { var w = c.ville || 'la destination'; if (villes.indexOf(w) < 0) villes.push(w); });
+        var box = el('div'); box.style.cssText = 'margin-top:12px;padding:12px;border:2px dashed var(--gold);border-radius:12px';
+        box.appendChild(el('strong', '', '🚚 Suite par la route'));
+        box.appendChild(el('div', 'small', rc.length + ' colis continuent vers ' + villes.join(', ') + '.'));
+        var go = async function (liste, debut, suite) {
+          var rows = liste.map(function (c) { return { colis_id: c.id, type: 'passage', etape: 5, lieu: debut + (c.ville || 'la destination') + suite }; });
+          var o = await db.from('evenements').insert(rows);
+          var e = $('verr'); e.textContent = '';
+          if (o.error) { e.appendChild(msg('Action impossible : ' + o.error.message)); return; }
+          load();
+        };
+        if (e0.length) {
+          var b1 = el('button', 'go', '🚚 Le camion est parti (' + e0.length + ' colis)');
+          b1.onclick = function () { b1.disabled = true; go(e0, 'En route vers ', ''); };
+          box.appendChild(b1);
+        }
+        if (e1.length) {
+          var b2 = el('button', 'go', '📍 Arrivé à destination (' + e1.length + ' colis)');
+          b2.style.background = 'var(--ok)'; b2.style.color = '#fff';
+          b2.onclick = function () { b2.disabled = true; go(e1, 'Arrivé à ', ', prêt au retrait'); };
+          box.appendChild(b2);
+        }
+        if (!e0.length && !e1.length) box.appendChild(el('div', 'small', '✅ Tous ces colis sont arrivés à destination.'));
+        box.appendChild(el('div', 'small', 'Pensez ensuite à « 📣 Prévenir tous les clients ».'));
+        var ap = card.querySelector('.groupe') || card.querySelector('.msg');
+        if (ap) ap.after(box); else card.appendChild(box);
+      }
     });
     if (!ranges.length) return;
     var d = document.createElement('details');
@@ -642,6 +686,23 @@
         document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
       };
       window.scrollTo(0, 0);
+    };
+  })();
+
+  // ----- Messages WhatsApp pendant le trajet par la route -----
+  (function () {
+    var _wt2 = waText;
+    waText = function (c) {
+      if (!(c.voyage_id && c.route && c.etape === 5)) return _wt2(c);
+      var e = etatRoute(c);
+      if (e === 2) return _wt2(c);
+      var m = (user && user.user_metadata) || {}, ville = c.ville || 'la destination';
+      var body = e === 0
+        ? 'votre colis est dédouané' + (c.port ? ' à ' + c.port : '') + '. Il va bientôt partir par la route vers ' + ville + '.'
+        : 'votre colis est en route vers ' + ville + ' par la route.';
+      return 'Bonjour' + (c.destinataire ? ' ' + c.destinataire : '') + ', ' + body +
+        '\nCode de suivi : ' + c.code + '\nSuivi : ' + location.origin + location.pathname + '?code=' + c.code +
+        '\n— ' + (m.nom || 'Sabali');
     };
   })();
 
