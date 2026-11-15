@@ -227,10 +227,17 @@
       ville: $('city').value.trim(), contenu: $('what').value.trim(), kg: parseFloat($('kg').value) || 0,
       prix: parseFloat($('price').value) || 0, route: $('road').value === '1'
     };
+    var npc = parseInt(($('pcs') || {}).value, 10) || 1;
+    if (npc < 1) npc = 1; if (npc > 99) npc = 99;
+    if (npc > 1) row.pieces = npc;
     if (telok) row.telephone = '+' + telok;
     b.disabled = true;
     try {
       var o = await db.from('colis').insert(row).select('code').single();
+      if (o.error && row.pieces && /pieces/.test(o.error.message)) {
+        e.appendChild(msg('Le nombre de pièces n’est pas encore activé : lancez d’abord le fichier sabali-pieces.sql dans Supabase.'));
+        return;
+      }
       if (o.error) { e.appendChild(msg('Enregistrement impossible : ' + o.error.message)); return; }
       if (sv.value && o.data && o.data.code) {
         var r = await db.rpc('ajouter_colis_voyage', { p_voyage: sv.value, p_codes: [o.data.code] });
@@ -240,6 +247,7 @@
         e.appendChild(msg('Colis ' + o.data.code + ' enregistré.', 'info'));
       }
       ['from', 'to', 'tel', 'what', 'kg', 'price'].forEach(function (i) { $(i).value = ''; });
+      if ($('pcs')) $('pcs').value = '1';
       load();
     } finally { b.disabled = false; }
   };
@@ -650,12 +658,13 @@
       var L = colis.filter(function (c) { return c.voyage_id === v.id; })
         .sort(function (a, b) { return String(a.destinataire || '').localeCompare(String(b.destinataire || ''), 'fr'); });
       var m = (user && user.user_metadata) || {};
-      var tot = { kg: 0, prix: 0, paye: 0, reste: 0 };
+      var tot = { kg: 0, prix: 0, paye: 0, reste: 0, pcs: 0 };
       var lignes = L.map(function (c, i) {
         var reste = Math.max((Number(c.prix) || 0) - (Number(c.paye) || 0), 0);
+        var np = Number(c.pieces) || 1; tot.pcs += np;
         tot.kg += Number(c.kg) || 0; tot.prix += Number(c.prix) || 0; tot.paye += Number(c.paye) || 0; tot.reste += reste;
         return { n: i + 1, code: c.code, exp: c.expediteur || '', dest: c.destinataire || '', tel: c.telephone || '',
-          ville: c.ville || '', contenu: c.contenu || '', kg: Number(c.kg) || 0, prix: Number(c.prix) || 0,
+          ville: c.ville || '', contenu: (np > 1 ? np + ' pièces · ' : '') + (c.contenu || ''), kg: Number(c.kg) || 0, prix: Number(c.prix) || 0,
           paye: Number(c.paye) || 0, reste: reste, statut: stepsFor(c)[c.etape] || '' };
       });
 
@@ -668,7 +677,7 @@
         (lignes.length ? lignes.map(function (r) {
           return '<tr><td>' + r.n + '</td><td><b>' + esc(r.code) + '</b></td><td>' + esc(r.exp) + '</td><td>' + esc(r.dest) + '</td><td>' + esc(r.tel) + '</td><td>' + esc(r.ville) + '</td><td>' + esc(r.contenu) + '</td><td class="n">' + (r.kg ? r.kg.toLocaleString('fr-FR') + ' kg' : '') + '</td><td class="n">' + e2(r.prix) + '</td><td class="n">' + e2(r.paye) + '</td><td class="n">' + (r.reste ? '<b>' + e2(r.reste) + '</b>' : 'soldé') + '</td><td>' + esc(r.statut) + '</td></tr>';
         }).join('') : '<tr><td colspan="12">Aucun colis dans ce voyage.</td></tr>') +
-        '</tbody><tfoot><tr><td colspan="7">Total : ' + lignes.length + ' colis</td><td class="n">' + tot.kg.toLocaleString('fr-FR') + ' kg</td><td class="n">' + e2(tot.prix) + '</td><td class="n">' + e2(tot.paye) + '</td><td class="n">' + e2(tot.reste) + '</td><td></td></tr></tfoot></table></div>';
+        '</tbody><tfoot><tr><td colspan="7">Total : ' + lignes.length + ' colis' + (tot.pcs > lignes.length ? ' · ' + tot.pcs + ' pièces à charger' : '') + '</td><td class="n">' + tot.kg.toLocaleString('fr-FR') + ' kg</td><td class="n">' + e2(tot.prix) + '</td><td class="n">' + e2(tot.paye) + '</td><td class="n">' + e2(tot.reste) + '</td><td></td></tr></tfoot></table></div>';
       z.innerHTML = html;
       document.body.appendChild(z); document.body.classList.add('liste-ouverte');
       z.querySelector('#l-close').onclick = function () { z.remove(); document.body.classList.remove('liste-ouverte'); };
@@ -678,7 +687,7 @@
         var num = function (n) { return String(Math.round(n * 100) / 100).replace('.', ','); };
         var rows = [['N°', 'Code', 'Expéditeur', 'Destinataire', 'Téléphone', 'Ville', 'Contenu', 'Poids (kg)', 'Prix (€)', 'Payé (€)', 'Reste (€)', 'Statut']]
           .concat(lignes.map(function (r) { return [r.n, r.code, r.exp, r.dest, r.tel, r.ville, r.contenu, num(r.kg), num(r.prix), num(r.paye), num(r.reste), r.statut]; }))
-          .concat([['', 'TOTAL ' + lignes.length + ' colis', '', '', '', '', '', num(tot.kg), num(tot.prix), num(tot.paye), num(tot.reste), '']]);
+          .concat([['', 'TOTAL ' + lignes.length + ' colis' + (tot.pcs > lignes.length ? ' / ' + tot.pcs + ' pièces' : ''), '', '', '', '', '', num(tot.kg), num(tot.prix), num(tot.paye), num(tot.reste), '']]);
         var csv = '﻿' + rows.map(function (r) { return r.map(cel).join(';'); }).join('\r\n');
         var a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -718,4 +727,130 @@
   };
   // Si les voyages étaient déjà affichés avant le chargement de ce fichier, on les redessine tout de suite
   if (db && user && voyages.length) drawVoyages();
+
+  // ----- Plusieurs pièces pour un même colis (ex : 5 barils) -----
+  (function () {
+    function nbp(c) { return Math.max(parseInt(c && c.pieces, 10) || 1, 1); }
+    function trouver(code) { return colis.filter(function (x) { return x.code === code; })[0]; }
+
+    // Case « Nombre de pièces » à côté du contenu
+    var lp = el('label', '', 'Nombre de pièces (barils, cartons, valises…)'); lp.htmlFor = 'pcs';
+    var ip = document.createElement('input'); ip.id = 'pcs'; ip.type = 'number'; ip.min = '1'; ip.max = '99'; ip.step = '1'; ip.value = '1';
+    var ap = el('div', 'small', 'Un seul code de suivi pour le client, mais une étiquette numérotée par pièce (1/5, 2/5…).');
+    $('what').after(lp, ip, ap);
+
+    // Message WhatsApp : on précise le nombre de pièces
+    var _wt3 = waText;
+    waText = function (c) {
+      var t = _wt3(c), n = nbp(c);
+      if (n < 2) return t;
+      var k = 'Code de suivi : ' + c.code;
+      return t.indexOf(k) >= 0 ? t.replace(k, k + '\nNombre de pièces : ' + n) : t + '\nNombre de pièces : ' + n;
+    };
+
+    // QR code
+    function chargerQR() {
+      return new Promise(function (ok, ko) {
+        if (window.qrcode) return ok();
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+        s.onload = ok; s.onerror = function () { ko(new Error('Impossible de charger le QR code. Vérifiez votre connexion.')); };
+        document.head.appendChild(s);
+      });
+    }
+    function qrSvg(texte, px) {
+      var q = qrcode(0, 'M'); q.addData(texte); q.make();
+      var n = q.getModuleCount(), m = 2, d = '';
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + (c + m) + ' ' + (r + m) + 'h1v1h-1z';
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + (n + 2 * m) + ' ' + (n + 2 * m) + '" width="' + px + '" height="' + px +
+        '"><rect width="100%" height="100%" fill="#fff"/><path d="' + d + '" fill="#000" shape-rendering="crispEdges"/></svg>';
+    }
+    function esc2(x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (k) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[k]; }); }
+    function etiquettes(c) {
+      var m = (user && user.user_metadata) || {}, n = nbp(c), qr = qrSvg(location.origin + location.pathname + '?code=' + c.code, 200), h = '';
+      for (var i = 1; i <= n; i++) {
+        h += '<div class="eti"><div class="ent">' + esc2(m.nom || 'Sabali') + '</div>' + qr +
+          '<div class="cod">' + esc2(c.code) + '</div><div class="pce">Pièce ' + i + ' / ' + n + '</div>' +
+          '<div class="scn">Scannez pour suivre votre colis</div>' +
+          '<div class="dst">' + esc2([c.destinataire, c.ville].filter(Boolean).join(' · ')) + '</div></div>';
+      }
+      return h;
+    }
+    var CSS_ETI = '.eti{box-sizing:border-box;width:300px;margin:8px auto;padding:12px;border:2px solid #000;border-radius:8px;background:#fff;color:#000;text-align:center;font-family:Arial,sans-serif;page-break-inside:avoid;break-inside:avoid}' +
+      '.eti .ent{font-weight:bold;font-size:16px;margin-bottom:6px}.eti .cod{font-family:monospace;font-weight:bold;font-size:26px;letter-spacing:2px;margin-top:4px}' +
+      '.eti .pce{display:inline-block;margin-top:6px;padding:4px 14px;border:2px solid #000;border-radius:20px;font-weight:bold;font-size:20px}' +
+      '.eti .scn{font-size:12px;margin-top:6px}.eti .dst{font-size:13px;font-weight:bold;margin-top:4px}';
+
+    function imprimerEti(c) {
+      var f = document.createElement('iframe');
+      f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+      document.body.appendChild(f);
+      var d = f.contentDocument;
+      d.open(); d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Étiquettes ' + esc2(c.code) + '</title><style>body{margin:0}' + CSS_ETI + '</style></head><body>' + etiquettes(c) + '</body></html>'); d.close();
+      f.contentWindow.onafterprint = function () { f.remove(); };
+      setTimeout(function () { f.remove(); }, 120000);
+      setTimeout(function () { f.contentWindow.focus(); f.contentWindow.print(); }, 150);
+    }
+
+    async function ouvrirEtiquettes(c) {
+      var d = document.createElement('dialog');
+      d.style.cssText = 'border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);max-width:420px;width:calc(100% - 32px);max-height:90vh;padding:16px;font-family:inherit';
+      d.onclose = function () { d.remove(); };
+      document.body.appendChild(d);
+      d.appendChild(el('strong', '', 'Étiquettes du colis ' + c.code + ' (' + nbp(c) + ' pièces)'));
+      var bf = el('button', 'go alt', 'Fermer'); bf.onclick = function () { d.close(); };
+      try { await chargerQR(); } catch (x) { d.appendChild(msg(x.message)); d.appendChild(bf); d.showModal(); return; }
+      d.appendChild(el('p', 'small', 'Collez une étiquette sur chaque pièce. Elles ont toutes le même QR code, mais le numéro (1/' + nbp(c) + ', 2/' + nbp(c) + '…) permet de vérifier qu’il ne manque rien.'));
+      var st = document.createElement('style'); st.textContent = CSS_ETI; d.appendChild(st);
+      var z = el('div'); z.innerHTML = etiquettes(c); z.style.cssText = 'max-height:45vh;overflow:auto;background:#eee;border-radius:10px;padding:4px';
+      var bi = el('button', 'go', 'Imprimer les ' + nbp(c) + ' étiquettes'); bi.onclick = function () { imprimerEti(c); };
+      [z, bi, bf].forEach(function (x) { d.appendChild(x); });
+      d.showModal();
+    }
+
+    // Fiches colis : nombre de pièces + bouton étiquettes numérotées
+    function majCartes() {
+      document.querySelectorAll('#list .track').forEach(function (card) {
+        var k = card.querySelector('.code'); if (!k) return;
+        var c = trouver(k.textContent); if (!c || nbp(c) < 2) return;
+        if (!card.querySelector('.pcs-info')) {
+          var i = el('div', 'small pcs-info', '📦 ' + nbp(c) + ' pièces' + (c.contenu ? ' · ' + c.contenu : ''));
+          i.style.fontWeight = '600';
+          var h = card.firstChild; if (h && h.nextSibling) h.nextSibling.after(i); else card.appendChild(i);
+        }
+        var b = card.querySelector('.acts .qr');
+        if (b && b.dataset.pcs !== String(nbp(c))) {
+          b.dataset.pcs = String(nbp(c));
+          b.textContent = 'Étiquettes QR (' + nbp(c) + ')';
+          b.onclick = function () { ouvrirEtiquettes(c); };
+        }
+      });
+    }
+    new MutationObserver(majCartes).observe($('list'), { childList: true, subtree: true });
+    majCartes();
+
+    // Remise : le transporteur confirme que toutes les pièces sont remises
+    new MutationObserver(function () {
+      document.querySelectorAll('dialog').forEach(function (d) {
+        if (d.dataset.pcs) return;
+        var t = d.querySelector('strong'); if (!t || t.textContent.indexOf('Remise du colis ') !== 0) return;
+        var v = Array.prototype.filter.call(d.querySelectorAll('button'), function (b) { return b.textContent === 'Valider la remise'; })[0];
+        if (!v) return;
+        d.dataset.pcs = '1';
+        var c = trouver(t.textContent.replace('Remise du colis ', '').trim()); if (!c || nbp(c) < 2) return;
+        var n = nbp(c);
+        var lb = el('label', 'chk'), cb = document.createElement('input'); cb.type = 'checkbox';
+        lb.appendChild(cb); lb.appendChild(document.createTextNode(' J’ai bien remis les ' + n + ' pièces (' + n + '/' + n + ')'));
+        lb.style.cssText = 'margin:12px 0;font-weight:600';
+        v.before(lb);
+        d.addEventListener('click', function (ev) {
+          if (ev.target !== v || cb.checked) return;
+          ev.stopImmediatePropagation(); ev.preventDefault();
+          lb.style.color = 'var(--bad)';
+          alertePcs(d, v, 'Cochez la case : vérifiez que les ' + n + ' pièces sont bien remises.');
+        }, true);
+      });
+    }).observe(document.body, { childList: true });
+    function alertePcs(d, v, t) { var o = d.querySelector('.pcs-err'); if (o) o.remove(); var m = msg(t); m.classList.add('pcs-err'); v.before(m); }
+  })();
 })();
