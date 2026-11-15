@@ -529,6 +529,56 @@
     };
   })();
 
+  // ----- Recherche et filtre dans « Vos colis » -----
+  (function () {
+    var L = $('list');
+    var zone = el('div');
+    zone.style.cssText = 'display:grid;grid-template-columns:1fr;gap:8px;margin:4px 0 6px';
+    var q = document.createElement('input');
+    q.type = 'search'; q.id = 'rech'; q.placeholder = '🔎 Rechercher : nom, code, téléphone, ville…';
+    q.setAttribute('autocomplete', 'off'); q.setAttribute('aria-label', 'Rechercher un colis');
+    var sv = document.createElement('select'); sv.id = 'filtre-voyage'; sv.setAttribute('aria-label', 'Filtrer par voyage');
+    var compte = el('div', 'small');
+    zone.appendChild(q); zone.appendChild(sv); zone.appendChild(compte);
+    L.before(zone);
+
+    function norm(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+    function remplir() {
+      var choix = sv.value;
+      sv.textContent = '';
+      [['', 'Tous les voyages'], ['_aucun', 'Colis sans voyage']].forEach(function (o) {
+        var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; sv.appendChild(op);
+      });
+      voyages.forEach(function (v) {
+        var op = document.createElement('option'); op.value = v.id;
+        op.textContent = v.nom + (v.archive ? ' (rangé)' : '');
+        sv.appendChild(op);
+      });
+      sv.value = choix; if (sv.value !== choix) sv.value = '';
+    }
+    function filtrer() {
+      var mots = norm(q.value).split(/\s+/).filter(Boolean), fv = sv.value, vus = 0, total = 0;
+      L.querySelectorAll(':scope > .track').forEach(function (card) {
+        var k = card.querySelector('.code'); if (!k) return;
+        var c = colis.filter(function (x) { return x.code === k.textContent; })[0];
+        if (!c) return;
+        total++;
+        var okV = !fv || (fv === '_aucun' ? !c.voyage_id : c.voyage_id === fv);
+        var texte = norm([c.code, c.expediteur, c.destinataire, c.telephone, c.ville, c.port, c.origine, c.contenu].join(' '));
+        var okT = mots.every(function (m) { return texte.indexOf(m) > -1; });
+        card.hidden = !(okV && okT);
+        if (!card.hidden) vus++;
+      });
+      compte.textContent = (q.value || fv) ? vus + ' colis affiché' + (vus > 1 ? 's' : '') + ' sur ' + total : total + ' colis';
+      zone.hidden = total === 0;
+    }
+    q.addEventListener('input', filtrer);
+    sv.addEventListener('change', filtrer);
+    var _drawR = draw;
+    draw = function () { _drawR.apply(this, arguments); remplir(); filtrer(); };
+    if (colis.length) { remplir(); filtrer(); } else { zone.hidden = true; }
+  })();
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
