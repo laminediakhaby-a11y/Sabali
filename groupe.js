@@ -131,6 +131,10 @@
         b.disabled = true; ranger(v, true);
       };
       card.appendChild(b);
+      var lb = el('button', 'liste', '📋 Liste de colisage');
+      lb.style.cssText = PETIT + ';margin:12px 0 0 8px';
+      lb.onclick = function () { ouvrirListe(v); };
+      card.appendChild(lb);
     });
     if (!ranges.length) return;
     var d = document.createElement('details');
@@ -577,6 +581,68 @@
     var _drawR = draw;
     draw = function () { _drawR.apply(this, arguments); remplir(); filtrer(); };
     if (colis.length) { remplir(); filtrer(); } else { zone.hidden = true; }
+  })();
+
+  // ----- Liste de colisage par voyage (impression / PDF / Excel) -----
+  (function () {
+    var st = document.createElement('style');
+    st.textContent =
+      '#liste-zone{position:fixed;inset:0;z-index:60;background:#fff;color:#12261d;overflow:auto;padding:14px;font-family:inherit}' +
+      '#liste-zone .lbar{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:0;background:#fff;padding:6px 0 10px;z-index:1}' +
+      '#liste-zone .lbar button{font:inherit;font-weight:700;padding:10px 14px;border-radius:10px;border:0;background:#e3a82b;color:#2b1d00;cursor:pointer}' +
+      '#liste-zone .lbar .l2{background:#0f3d2e;color:#fff}#liste-zone .lbar .l3{background:#fff;border:2px solid #e9e2cf;color:#12261d}' +
+      '#liste-zone h2{margin:6px 0 2px;color:#0f3d2e}#liste-zone .m{color:#5f5c4c;font-size:13px;margin-bottom:10px}' +
+      '#liste-zone .tw{overflow-x:auto}#liste-zone table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:900px}' +
+      '#liste-zone th{background:#0f3d2e;color:#fff;text-align:left;padding:6px;white-space:nowrap}' +
+      '#liste-zone td{border-bottom:1px solid #e9e2cf;padding:6px;vertical-align:top}#liste-zone tr:nth-child(even) td{background:#fbf7ee}' +
+      '#liste-zone .n{text-align:right;white-space:nowrap}#liste-zone tfoot td{font-weight:800;border-top:2px solid #0f3d2e;background:#fff}' +
+      '@media print{@page{size:A4 landscape;margin:10mm}body.liste-ouverte>*:not(#liste-zone){display:none!important}#liste-zone{position:static;padding:0}#liste-zone .lbar{display:none}#liste-zone table{min-width:0;font-size:10px}}';
+    document.head.appendChild(st);
+
+    function e2(n) { return (Number(n) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €'; }
+    function esc(x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+    window.ouvrirListe = function (v) {
+      var L = colis.filter(function (c) { return c.voyage_id === v.id; })
+        .sort(function (a, b) { return String(a.destinataire || '').localeCompare(String(b.destinataire || ''), 'fr'); });
+      var m = (user && user.user_metadata) || {};
+      var tot = { kg: 0, prix: 0, paye: 0, reste: 0 };
+      var lignes = L.map(function (c, i) {
+        var reste = Math.max((Number(c.prix) || 0) - (Number(c.paye) || 0), 0);
+        tot.kg += Number(c.kg) || 0; tot.prix += Number(c.prix) || 0; tot.paye += Number(c.paye) || 0; tot.reste += reste;
+        return { n: i + 1, code: c.code, exp: c.expediteur || '', dest: c.destinataire || '', tel: c.telephone || '',
+          ville: c.ville || '', contenu: c.contenu || '', kg: Number(c.kg) || 0, prix: Number(c.prix) || 0,
+          paye: Number(c.paye) || 0, reste: reste, statut: stepsFor(c)[c.etape] || '' };
+      });
+
+      var old = document.getElementById('liste-zone'); if (old) old.remove();
+      var z = document.createElement('div'); z.id = 'liste-zone';
+      var html = '<div class="lbar"><button id="l-print">Imprimer / PDF</button><button id="l-csv" class="l2">Télécharger pour Excel</button><button id="l-close" class="l3">Fermer</button></div>' +
+        '<h2>Liste de colisage — ' + esc(v.nom) + '</h2>' +
+        '<div class="m">' + esc(m.nom || '') + ' · départ le ' + esc(fr(v.date_depart)) + ' · étape : ' + esc(VSTEPS[v.etape]) + ' · imprimée le ' + new Date().toLocaleDateString('fr-FR') + '</div>' +
+        '<div class="tw"><table><thead><tr><th>N°</th><th>Code</th><th>Expéditeur</th><th>Destinataire</th><th>Téléphone</th><th>Ville</th><th>Contenu</th><th class="n">Poids</th><th class="n">Prix</th><th class="n">Payé</th><th class="n">Reste</th><th>Statut</th></tr></thead><tbody>' +
+        (lignes.length ? lignes.map(function (r) {
+          return '<tr><td>' + r.n + '</td><td><b>' + esc(r.code) + '</b></td><td>' + esc(r.exp) + '</td><td>' + esc(r.dest) + '</td><td>' + esc(r.tel) + '</td><td>' + esc(r.ville) + '</td><td>' + esc(r.contenu) + '</td><td class="n">' + (r.kg ? r.kg.toLocaleString('fr-FR') + ' kg' : '') + '</td><td class="n">' + e2(r.prix) + '</td><td class="n">' + e2(r.paye) + '</td><td class="n">' + (r.reste ? '<b>' + e2(r.reste) + '</b>' : 'soldé') + '</td><td>' + esc(r.statut) + '</td></tr>';
+        }).join('') : '<tr><td colspan="12">Aucun colis dans ce voyage.</td></tr>') +
+        '</tbody><tfoot><tr><td colspan="7">Total : ' + lignes.length + ' colis</td><td class="n">' + tot.kg.toLocaleString('fr-FR') + ' kg</td><td class="n">' + e2(tot.prix) + '</td><td class="n">' + e2(tot.paye) + '</td><td class="n">' + e2(tot.reste) + '</td><td></td></tr></tfoot></table></div>';
+      z.innerHTML = html;
+      document.body.appendChild(z); document.body.classList.add('liste-ouverte');
+      z.querySelector('#l-close').onclick = function () { z.remove(); document.body.classList.remove('liste-ouverte'); };
+      z.querySelector('#l-print').onclick = function () { window.print(); };
+      z.querySelector('#l-csv').onclick = function () {
+        var cel = function (x) { x = String(x == null ? '' : x); return /[";\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+        var num = function (n) { return String(Math.round(n * 100) / 100).replace('.', ','); };
+        var rows = [['N°', 'Code', 'Expéditeur', 'Destinataire', 'Téléphone', 'Ville', 'Contenu', 'Poids (kg)', 'Prix (€)', 'Payé (€)', 'Reste (€)', 'Statut']]
+          .concat(lignes.map(function (r) { return [r.n, r.code, r.exp, r.dest, r.tel, r.ville, r.contenu, num(r.kg), num(r.prix), num(r.paye), num(r.reste), r.statut]; }))
+          .concat([['', 'TOTAL ' + lignes.length + ' colis', '', '', '', '', '', num(tot.kg), num(tot.prix), num(tot.paye), num(tot.reste), '']]);
+        var csv = '﻿' + rows.map(function (r) { return r.map(cel).join(';'); }).join('\r\n');
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+        a.download = 'colisage-' + String(v.nom).replace(/[^\w\-]+/g, '-') + '.csv';
+        document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+      };
+      window.scrollTo(0, 0);
+    };
   })();
 
   var _dv = drawVoyages;
