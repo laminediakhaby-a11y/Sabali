@@ -92,6 +92,8 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600}
         <div><b id="sf">0 €</b><span id="sfl">à facturer</span></div>
       </div>
       <div id="note" role="status"></div>
+      <button class="go alt" id="backup">💾 Sauvegarder toutes les données</button>
+      <p class="small" style="margin:6px 0 0">Télécharge un fichier avec tous les transporteurs, voyages, colis, paiements et factures. Faites-le une fois par semaine et gardez le fichier en lieu sûr (Google Drive, iCloud…).</p>
 
       <h2>Ajouter un transporteur</h2>
       <p class="small">Le transporteur doit d’abord avoir créé son compte sur le site avec cet e-mail.</p>
@@ -296,6 +298,19 @@ async function ouvrirFacture(t) {
     '<p style="margin-top:18px"><b>Paiement</b> par virement sous 15 jours, avant le ' + dfr(ech) + '.<br>IBAN : <span contenteditable>FR76 …</span></p>' +
     '<div class="mentions">TVA non applicable, article 293 B du CGI.<br>En cas de retard de paiement : pénalités au taux de 3 fois le taux d’intérêt légal et indemnité forfaitaire pour frais de recouvrement de 40 € (article L441-10 du Code de commerce). Pas d’escompte pour paiement anticipé.<br>Conditions de location : sabali.app/conditions-location.pdf</div>';
 }
+
+$('backup').onclick = async function () {
+  var b = this; b.disabled = true; b.textContent = 'Sauvegarde en cours…'; note('');
+  var o = await db.rpc('admin_sauvegarde');
+  b.disabled = false; b.textContent = '💾 Sauvegarder toutes les données';
+  if (o.error) { note('Sauvegarde impossible : ' + o.error.message); return; }
+  var nb = 0; Object.keys(o.data || {}).forEach(function (k) { if (Array.isArray(o.data[k])) nb += o.data[k].length; });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(o.data, null, 1)], { type: 'application/json' }));
+  a.download = 'sabali-sauvegarde-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  note('Sauvegarde téléchargée : ' + nb + ' lignes de données. Rangez le fichier en lieu sûr.', true);
+};
 
 $('aadd').onclick = async function () {
   var m = $('aemail').value.trim();
