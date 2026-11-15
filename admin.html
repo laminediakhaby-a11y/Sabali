@@ -105,7 +105,7 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600}
       <button class="go" id="aadd">Ajouter avec essai gratuit</button>
 
       <h2>Mes transporteurs</h2>
-      <label for="mois">Facturation au colis (0,50 € par colis parti) — mois</label>
+      <label for="mois">Facturation à la pièce (0,50 € par pièce expédiée) — mois</label>
       <select id="mois"></select>
       <div id="list"></div>
     </div>
@@ -197,7 +197,7 @@ function draw(rows) {
     l.appendChild(el('div', 'code', t.email));
     var nb = facture[t.transporteur_id] || 0, du = nb * PRIX_COLIS + (Number(t.loyer) || 0);
     var fl = el('div', 'small'); fl.style.cssText = 'margin-top:4px;color:var(--ink)';
-    fl.appendChild(el('strong', '', nb + ' colis partis en ' + nomMois() + ' → ' + eur(du)));
+    fl.appendChild(el('strong', '', nb + (nb > 1 ? ' pièces parties en ' : ' pièce partie en ') + nomMois() + ' → ' + eur(du)));
     if (Number(t.loyer) > 0) fl.appendChild(document.createTextNode(' (dont loyer fixe ' + eur(t.loyer) + ')'));
     l.appendChild(fl);
     l.appendChild(el('div', 'small', t.nb_colis + ' colis enregistrés au total'));
@@ -285,7 +285,7 @@ async function ouvrirFacture(t) {
   var dfr = function (x) { return x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
   var e2 = function (n) { return Number(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; };
   var periode = new Date(f.mois + 'T00:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-  var lignes = '<tr><td>Suivi de colis Sabali — colis partis en ' + esc(periode) + '</td><td class="n">' + f.nb_colis + '</td><td class="n">' + e2(f.prix_unitaire) + '</td><td class="n">' + e2(f.nb_colis * f.prix_unitaire) + '</td></tr>';
+  var lignes = '<tr><td>Suivi de colis Sabali — pièces expédiées en ' + esc(periode) + '</td><td class="n">' + f.nb_colis + '</td><td class="n">' + e2(f.prix_unitaire) + '</td><td class="n">' + e2(f.nb_colis * f.prix_unitaire) + '</td></tr>';
   if (Number(f.loyer) > 0) lignes += '<tr><td>Loyer fixe — ' + esc(periode) + '</td><td class="n">1</td><td class="n">' + e2(f.loyer) + '</td><td class="n">' + e2(f.loyer) + '</td></tr>';
   doc.innerHTML =
     '<p class="aide">Les zones jaunes se modifient : touchez-les pour compléter le nom et l’adresse du client, et votre IBAN.</p>' +
