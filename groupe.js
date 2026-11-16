@@ -912,7 +912,13 @@
       var t = document.querySelector('#res .track');
       if (!t || t.querySelector('.masc')) return;
       if (!dernier) return;
-      var c = choisir(dernier), b = bulle(c[0], c[1], c[2]);
+      var c = choisir(dernier), txt = c[2];
+      var pn = String(dernier.destinataire || '').trim().split(/\s+/)[0] || '';
+      if (pn && /^[A-Za-zÀ-ÿ'’-]{2,}$/.test(pn)) {
+        pn = pn.charAt(0).toUpperCase() + pn.slice(1).toLowerCase();
+        txt = pn + ', ' + (/^I\b/.test(txt) ? txt : txt.charAt(0).toLowerCase() + txt.slice(1));
+      }
+      var b = bulle(c[0], c[1], txt);
       var top = t.querySelector('.top');
       if (top) top.after(b); else t.prepend(b);
     }).observe($('res'), { childList: true, subtree: true });
