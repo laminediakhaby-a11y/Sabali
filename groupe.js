@@ -853,4 +853,93 @@
     }).observe(document.body, { childList: true });
     function alertePcs(d, v, t) { var o = d.querySelector('.pcs-err'); if (o) o.remove(); var m = msg(t); m.classList.add('pcs-err'); v.before(m); }
   })();
+
+  // ----- Mascottes : Sabi (baril), Awa (livreuse), Bakary (livreur) -----
+  (function () {
+    var M = {
+      sabi: '<svg viewBox="5 58 115 155" xmlns="http://www.w3.org/2000/svg"><ellipse cx="65" cy="196" rx="38" ry="6" fill="#d9d2bd"/><path d="M44 196 l-6 10 M86 196 l6 10" stroke="#0e3c2d" stroke-width="5" stroke-linecap="round"/><rect x="33" y="70" width="64" height="126" rx="16" fill="#1a7f4b"/><ellipse cx="65" cy="72" rx="32" ry="9" fill="#0e3c2d"/><ellipse cx="65" cy="71" rx="24" ry="5" fill="#156b40"/><rect x="33" y="100" width="64" height="7" fill="#e3a82b"/><rect x="33" y="166" width="64" height="7" fill="#e3a82b"/><circle cx="54" cy="130" r="8" fill="#fff"/><circle cx="76" cy="130" r="8" fill="#fff"/><circle cx="56" cy="131" r="4" fill="#0e3c2d"/><circle cx="78" cy="131" r="4" fill="#0e3c2d"/><circle cx="57.5" cy="129.5" r="1.4" fill="#fff"/><circle cx="79.5" cy="129.5" r="1.4" fill="#fff"/><path d="M54 146 q11 11 22 0" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><circle cx="45" cy="144" r="4" fill="#f2b6a0" opacity=".8"/><circle cx="85" cy="144" r="4" fill="#f2b6a0" opacity=".8"/><path d="M33 135 q-16 -6 -18 -26" fill="none" stroke="#1a7f4b" stroke-width="7" stroke-linecap="round"/><circle cx="15" cy="106" r="6" fill="#e3a82b"/><path d="M97 140 q14 8 14 22" fill="none" stroke="#1a7f4b" stroke-width="7" stroke-linecap="round"/><circle cx="111" cy="164" r="6" fill="#e3a82b"/></svg>',
+      awa: '<svg viewBox="150 55 92 160" xmlns="http://www.w3.org/2000/svg"><ellipse cx="190" cy="208" rx="36" ry="6" fill="#d9d2bd"/><path d="M162 206 q-4 -60 28 -76 q32 16 28 76 z" fill="#1a7f4b"/><path d="M168 180 h44" stroke="#e3a82b" stroke-width="5"/><path d="M172 192 h36" stroke="#e3a82b" stroke-width="3"/><rect x="183" y="118" width="14" height="14" fill="#8a5a3b"/><ellipse cx="190" cy="100" rx="22" ry="24" fill="#8a5a3b"/><path d="M166 96 q0 -34 24 -36 q26 2 26 34 q-4 -10 -26 -12 q-20 2 -24 14 z" fill="#e3a82b"/><path d="M210 70 q14 -10 18 4 q-6 8 -14 4 z" fill="#e3a82b"/><path d="M170 86 q20 -10 42 0" fill="none" stroke="#b07d14" stroke-width="2"/><circle cx="182" cy="102" r="3" fill="#2b1a10"/><circle cx="198" cy="102" r="3" fill="#2b1a10"/><path d="M183 112 q7 7 14 0" fill="none" stroke="#2b1a10" stroke-width="2.4" stroke-linecap="round"/><circle cx="176" cy="110" r="3.5" fill="#c47a5a" opacity=".6"/><circle cx="204" cy="110" r="3.5" fill="#c47a5a" opacity=".6"/><rect x="196" y="146" width="40" height="32" rx="3" fill="#c9924f"/><path d="M196 158 h40" stroke="#a8763a" stroke-width="2"/><rect x="222" y="162" width="10" height="10" fill="#fff"/><path d="M223 163 h3 v3 h-3 z M228 168 h3 v3 h-3 z M223 168 h3 v3 h-3 z" fill="#0e3c2d"/><path d="M208 150 q10 4 16 14" fill="none" stroke="#8a5a3b" stroke-width="6" stroke-linecap="round"/></svg>',
+      bakary: '<svg viewBox="262 62 96 154" xmlns="http://www.w3.org/2000/svg"><ellipse cx="315" cy="208" rx="36" ry="6" fill="#d9d2bd"/><rect x="299" y="180" width="12" height="26" rx="3" fill="#0e3c2d"/><rect x="319" y="180" width="12" height="26" rx="3" fill="#0e3c2d"/><path d="M290 186 q0 -50 25 -56 q25 6 25 56 z" fill="#1a7f4b"/><path d="M305 136 l10 14 l10 -14" fill="none" stroke="#e3a82b" stroke-width="3"/><rect x="309" y="118" width="12" height="14" fill="#6b4329"/><ellipse cx="315" cy="100" rx="21" ry="23" fill="#6b4329"/><path d="M293 94 q2 -24 22 -24 q20 0 22 24 z" fill="#1a7f4b"/><path d="M330 92 q14 0 20 6 q-12 4 -22 2 z" fill="#e3a82b"/><circle cx="315" cy="82" r="5" fill="#e3a82b"/><circle cx="307" cy="104" r="3" fill="#1e120a"/><circle cx="323" cy="104" r="3" fill="#1e120a"/><path d="M306 113 q9 8 18 0" fill="none" stroke="#1e120a" stroke-width="2.4" stroke-linecap="round"/><rect x="268" y="148" width="34" height="28" rx="3" fill="#c9924f"/><path d="M285 148 v28" stroke="#e3a82b" stroke-width="4"/><path d="M296 140 q-10 10 -8 20" fill="none" stroke="#1a7f4b" stroke-width="7" stroke-linecap="round"/><path d="M336 140 q14 -10 12 -26" fill="none" stroke="#1a7f4b" stroke-width="7" stroke-linecap="round"/><circle cx="348" cy="110" r="6" fill="#6b4329"/></svg>'
+    };
+    window.SABALI_MASCOTTES = M;
+    var st = document.createElement('style');
+    st.textContent = '.masc{display:flex;align-items:center;gap:12px;margin:12px 0 4px}.masc .fig{flex:0 0 72px;height:96px}.masc .fig svg{width:100%;height:100%}' +
+      '.masc .bul{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:.95rem;line-height:1.4}' +
+      '.masc .bul b{display:block;font-size:.8rem;color:var(--mute);margin-bottom:2px}' +
+      '.masc .bul:before{content:"";position:absolute;left:-7px;top:50%;margin-top:-6px;border:6px solid transparent;border-right-color:var(--line);border-left:0}' +
+      '.equipe{max-width:960px;margin:0 auto;padding:24px 20px 8px;text-align:center}.equipe .trio{display:flex;justify-content:center;gap:8px}' +
+      '.equipe .p{width:31%;max-width:130px}.equipe .p .fig{height:120px}.equipe .p svg{width:100%;height:100%}.equipe .p b{display:block;margin-top:4px}.equipe .p span{font-size:.85rem;color:var(--mute)}' +
+      '.equipe h3{margin:0 0 14px;font-size:1.25rem}';
+    document.head.appendChild(st);
+
+    function bulle(qui, nom, texte) {
+      var d = el('div', 'masc'), f = el('div', 'fig'), b = el('div', 'bul');
+      f.innerHTML = M[qui]; f.setAttribute('aria-hidden', 'true');
+      b.appendChild(el('b', '', nom)); b.appendChild(document.createTextNode(texte));
+      d.appendChild(f); d.appendChild(b);
+      return d;
+    }
+    window.bulleMascotte = bulle;
+
+    // Page de suivi du client : la mascotte change selon l'étape
+    var dernier = null;
+    if (db && db.rpc) {
+      var rpc0 = db.rpc.bind(db);
+      db.rpc = function (n, a) {
+        var pr = rpc0(n, a);
+        if (n === 'suivi') { dernier = null; Promise.resolve(pr).then(function (o) { dernier = o && o.data; }, function () {}); }
+        return pr;
+      };
+    }
+    function L(f, e) { return document.documentElement.lang === 'en' ? e : f; }
+    function choisir(c) {
+      var S = stepsFor(c), e = S[c.etape] || '', fin = c.etape >= S.length - 1;
+      if (fin) return ['awa', 'Awa', L('Votre colis a bien été remis. Merci pour votre confiance, à bientôt !', 'Your parcel has been handed over. Thank you for your trust, see you soon!')];
+      if (c.route && c.voyage_id && c.etape === 5) {
+        var r = etatRoute(c), v = c.ville || 'sa destination';
+        if (r === 2) return ['awa', 'Awa', L('Votre colis est arrivé à ' + v + ' ! Vous pouvez venir le récupérer.', 'Your parcel has arrived in ' + v + '! You can come and collect it.')];
+        if (r === 1) return ['bakary', 'Bakary', L('Votre colis roule vers ' + v + '. Il arrive bientôt !', 'Your parcel is on the road to ' + v + '. It will be there soon!')];
+        return ['bakary', 'Bakary', L('Votre colis est dédouané. Je prépare la suite par la route vers ' + v + '.', 'Your parcel has cleared customs. I am getting it ready for the road to ' + v + '.')];
+      }
+      if (/Dédouan/.test(e)) return ['sabi', 'Sabi', L('Votre colis est dédouané. Plus que quelques jours !', 'Your parcel has cleared customs. Only a few more days!')];
+      if (/port/i.test(e)) return ['sabi', 'Sabi', L('Nous sommes arrivés au port ! Encore un peu de patience.', 'We have reached the port! Just a little more patience.')];
+      if (/mer|Bateau|Parti/i.test(e)) return ['sabi', 'Sabi', L('Je traverse la mer avec votre colis. Tout va bien à bord !', 'I am crossing the sea with your parcel. All is well on board!')];
+      if (/Chargé/.test(e)) return ['bakary', 'Bakary', L('Votre colis est bien rangé dans le conteneur. Le départ approche !', 'Your parcel is safely packed in the container. Departure is coming soon!')];
+      if (c.etape > 0) return ['sabi', 'Sabi', L('Votre colis avance bien. Je vous tiens au courant !', 'Your parcel is on its way. I will keep you posted!')];
+      return ['bakary', 'Bakary', L('J’ai bien reçu votre colis. Il est entre de bonnes mains !', 'I have received your parcel. It is in good hands!')];
+    }
+    new MutationObserver(function () {
+      var t = document.querySelector('#res .track');
+      if (!t || t.querySelector('.masc')) return;
+      if (!dernier) return;
+      var c = choisir(dernier), b = bulle(c[0], c[1], c[2]);
+      var top = t.querySelector('.top');
+      if (top) top.after(b); else t.prepend(b);
+    }).observe($('res'), { childList: true, subtree: true });
+
+    // Espace transporteur : aucun colis
+    function vide() {
+      var L = $('list'); if (!L) return;
+      Array.prototype.forEach.call(L.querySelectorAll('p.small'), function (p) {
+        if (p.dataset.masc || p.textContent.indexOf('Aucun colis') !== 0) return;
+        p.dataset.masc = '1'; p.style.display = 'none';
+        p.after(bulle('bakary', 'Bakary', document.documentElement.lang === 'en' ? 'No parcels yet? Add your first parcel above, I will take care of the rest!' : 'Pas encore de colis ? Ajoutez votre premier colis plus haut, je m’occupe du reste !'));
+      });
+    }
+    new MutationObserver(vide).observe($('list'), { childList: true });
+    vide();
+
+    // Page d'accueil : l'équipe Sabali
+    var pr = $('presentation');
+    if (pr && !pr.querySelector('.equipe')) {
+      var q = el('section', 'equipe');
+      var en = document.documentElement.lang === 'en';
+      q.innerHTML = '<h3>' + (en ? 'The Sabali team looks after your parcels' : 'L’équipe Sabali veille sur vos colis') + '</h3><div class="trio">' +
+        (en ? [['bakary', 'Bakary', 'takes charge'], ['sabi', 'Sabi', 'crosses the sea'], ['awa', 'Awa', 'hands it over']] : [['bakary', 'Bakary', 'prend en charge'], ['sabi', 'Sabi', 'traverse la mer'], ['awa', 'Awa', 'vous remet le colis']]).map(function (x) {
+          return '<div class="p"><div class="fig" aria-hidden="true">' + M[x[0]] + '</div><b>' + x[1] + '</b><span>' + x[2] + '</span></div>';
+        }).join('') + '</div>';
+      var i2 = pr.querySelector('.intro2');
+      if (i2) i2.after(q); else pr.prepend(q);
+    }
+  })();
 })();
