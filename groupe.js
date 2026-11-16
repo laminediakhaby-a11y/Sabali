@@ -715,6 +715,79 @@
     };
   })();
 
+  // ----- Choisir l'étape du voyage + un seul message pour tous -----
+  function ajouterOutils(liste) {
+    var cartes = document.querySelectorAll('#vlist > .track');
+    liste.forEach(function (v, i) {
+      var card = cartes[i]; if (!card || card.querySelector('.outils-v')) return;
+      var mine = colis.filter(function (c) { return c.voyage_id === v.id; });
+      var box = el('div', 'outils-v'); box.style.cssText = 'margin-top:10px';
+      if (v.etape < 5) {
+        var lb = el('label', '', 'Ou choisir directement l’étape du voyage :');
+        var sel = document.createElement('select');
+        sel.appendChild(new Option('Étape actuelle : ' + VSTEPS[v.etape], ''));
+        for (var k = v.etape + 1; k <= 5; k++) sel.appendChild(new Option(VSTEPS[k], String(k)));
+        sel.onchange = async function () {
+          var cible = parseInt(sel.value, 10); if (!cible) return;
+          if (!confirm('Passer les ' + mine.length + ' colis du voyage « ' + v.nom + ' » à l’étape « ' + VSTEPS[cible] + ' » ?')) { sel.value = ''; return; }
+          sel.disabled = true;
+          for (var n = v.etape; n < cible; n++) {
+            var o = await vcall('avancer_voyage', { p_voyage: v.id });
+            if (o.error) break;
+          }
+          load();
+        };
+        box.appendChild(lb); box.appendChild(sel);
+      }
+      var bm = el('button', 'go alt', '📢 Un seul message pour tous');
+      bm.onclick = function () { messageCommun(v, mine); };
+      box.appendChild(bm);
+      var apres = card.querySelector('.groupe') || card.querySelector('.go.big') || card.querySelector('.msg') || card.querySelector('.top');
+      apres.after(box);
+    });
+  }
+
+  function texteCommun(v, mine) {
+    var m = (user && user.user_metadata) || {}, port = '', ville = '';
+    mine.some(function (c) { if (c.port) port = c.port; if (c.ville) ville = c.ville; return port && ville; });
+    var cont = /^conteneur/i.test(v.nom) ? 'le « ' + v.nom + ' »' : 'le conteneur « ' + v.nom + ' »';
+    var corps = [
+      'vos colis sont bien pris en charge pour ' + cont + '.',
+      'vos colis sont chargés dans ' + cont + '. Départ prévu le ' + fr(v.date_depart) + '.',
+      'le bateau est parti ! ' + cont.charAt(0).toUpperCase() + cont.slice(1) + ' est en route' + (port ? ' vers ' + port : '') + '.',
+      cont + ' est en mer. Tout se passe bien.',
+      cont + ' est arrivé au port' + (port ? ' de ' + port : '') + '. Le dédouanement est en cours.',
+      cont + ' est dédouané. Nous vous prévenons dès que vos colis sont prêts' + (ville ? ' à ' + ville : '') + '.'
+    ][Math.min(v.etape, 5)];
+    return 'Bonjour à tous, ' + corps + '\n\nSuivez votre colis avec votre code de suivi sur ' + location.origin + location.pathname.replace(/index\.html$/, '') +
+      '\n\n— ' + (m.nom || 'Sabali');
+  }
+
+  function messageCommun(v, mine) {
+    var d = document.createElement('dialog');
+    d.style.cssText = 'border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);max-width:460px;width:calc(100% - 32px);padding:16px;font-family:inherit';
+    d.onclose = function () { d.remove(); };
+    d.appendChild(el('strong', '', '📢 Un seul message pour tous · ' + v.nom));
+    d.appendChild(el('p', 'small', 'Collez ce message une seule fois dans votre liste de diffusion WhatsApp ou votre groupe clients : tout le monde le reçoit en même temps. Vous pouvez le modifier avant.'));
+    var ta = document.createElement('textarea'); ta.value = texteCommun(v, mine); ta.rows = 8; ta.style.cssText = 'width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)';
+    var info = el('div');
+    var bc = el('button', 'go', '📋 Copier le message');
+    bc.onclick = async function () {
+      info.textContent = '';
+      try { await navigator.clipboard.writeText(ta.value); }
+      catch (e) { ta.select(); try { document.execCommand('copy'); } catch (x) {} }
+      info.appendChild(msg('✅ Message copié. Ouvrez WhatsApp et collez-le dans votre liste de diffusion ou votre groupe.', 'info'));
+    };
+    var bw = el('a', 'go', '💬 Ouvrir WhatsApp'); bw.target = '_blank'; bw.rel = 'noopener';
+    bw.style.cssText = 'display:block;text-align:center;text-decoration:none;background:#1a7f4b;color:#fff;margin-top:8px';
+    bw.onclick = function () { bw.href = 'https://wa.me/?text=' + encodeURIComponent(ta.value); };
+    bw.href = 'https://wa.me/?text=' + encodeURIComponent(ta.value);
+    d.appendChild(el('p', 'small', 'Astuce : dans WhatsApp, une « liste de diffusion » envoie le message à chaque client en privé. Créez-la une fois avec tous vos clients du voyage.'));
+    var bf = el('button', 'go alt', 'Fermer'); bf.onclick = function () { d.close(); };
+    [ta, bc, bw, info, bf].forEach(function (x) { d.appendChild(x); });
+    document.body.appendChild(d); d.showModal();
+  }
+
   var _dv = drawVoyages;
   drawVoyages = function () {
     var tous = voyages;
@@ -724,6 +797,7 @@
     ajouterRanger(actifs, tous.filter(function (v) { return v.archive; }));
     remplirVoyages(actifs);
     ajouterBoutons(actifs);
+    ajouterOutils(actifs);
   };
   // Si les voyages étaient déjà affichés avant le chargement de ce fichier, on les redessine tout de suite
   if (db && user && voyages.length) drawVoyages();
