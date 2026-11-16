@@ -1,6 +1,6 @@
 /* Sabali – permet d'ouvrir le site même sans connexion internet */
 var CACHE = 'sabali-v1';
-var BASE = ['./', 'index.html', 'remise.js', 'groupe.js'];
+var BASE = ['./', 'index.html', 'remise.js', 'groupe.js','espace.js'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(BASE); }).catch(function () {}));
